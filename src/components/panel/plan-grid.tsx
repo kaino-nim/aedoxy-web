@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { Tabs as TabsPrimitive } from "radix-ui";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { matchesTab, PERIOD_TABS, parsePeriodTab, type PeriodTab, type PlanCategory } from "@/lib/plan-category";
 
 export type PlanGridItem = { id: number; category: PlanCategory; node: ReactNode };
@@ -22,13 +25,18 @@ export function PlanGrid({ items, initialTab }: { items: PlanGridItem[]; initial
 
   return (
     <Tabs value={tab} onValueChange={select} className="gap-4">
-      <TabsList aria-label="Periode paket">
-        {PERIOD_TABS.map((t) => (
-          <TabsTrigger key={t.value} value={t.value} className="px-3">
-            {t.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+      {/* Button Group as the tablist: the Radix list/trigger keep role, aria-selected and arrow-key navigation, the Buttons draw them. */}
+      <TabsPrimitive.List asChild>
+        <ButtonGroup aria-label="Periode paket">
+          {PERIOD_TABS.map((t) => (
+            <TabsPrimitive.Trigger key={t.value} value={t.value} asChild>
+              <Button variant={tab === t.value ? "default" : "outline"} className="h-9 px-4 text-sm">
+                {t.label}
+              </Button>
+            </TabsPrimitive.Trigger>
+          ))}
+        </ButtonGroup>
+      </TabsPrimitive.List>
       {PERIOD_TABS.map((t) => {
         const shown = items.filter((item) => matchesTab(item.category, t.value));
         return (

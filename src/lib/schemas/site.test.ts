@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { announcementSchema, brandSchema, contactSchema, docsSchema, fillLegalPlaceholder, isSafeHref, mergeSiteSettings, type SiteSettings } from "./site";
+import { announcementSchema, brandSchema, contactSchema, docsSchema, fillLegalPlaceholder, isSafeHref, mergeSiteSettings, resolveModelPricingUrl, type SiteSettings } from "./site";
 
 const defaults: SiteSettings = {
   brandName: "aedoxy",
@@ -16,6 +16,7 @@ const defaults: SiteSettings = {
   announcement: { enabled: false, text: "", href: "", linkLabel: "" },
   apiBaseUrl: "https://ai.example.com",
   sampleModel: "your-model-id",
+  modelPricingUrl: "",
 };
 
 describe("brandSchema", () => {
@@ -112,5 +113,38 @@ describe("fillLegalPlaceholder", () => {
   it("leaves other placeholders, and empty settings, as they are", () => {
     expect(fillLegalPlaceholder("ISI: tanggal berlaku", s)).toBeNull();
     expect(fillLegalPlaceholder("ISI: email kontak resmi", { ...s, supportEmail: "" })).toBeNull();
+  });
+});
+
+describe("modelPricingUrl", () => {
+  const parse = (modelPricingUrl?: string) => docsSchema.safeParse({ apiBaseUrl: "https://ai.example.com", sampleModel: "m", ...(modelPricingUrl === undefined ? {} : { modelPricingUrl }) });
+
+  it("accepts an https URL (trimmed, query allowed) and treats empty or missing as the default", () => {
+    expect(parse("  https://ai.example.com/pricing?x=1  ")).toMatchObject({ success: true, data: { modelPricingUrl: "https://ai.example.com/pricing?x=1" } });
+    expect(parse("")).toMatchObject({ success: true, data: { modelPricingUrl: "" } });
+    expect(parse()).toMatchObject({ success: true, data: { modelPricingUrl: "" } });
+  });
+
+  it("rejects other schemes, plain http, relative paths and credentials", () => {
+    for (const bad of ["javascript:alert(1)", "data:text/html,<script>1</script>", "http://ai.example.com/pricing", "ftp://x.com", "/pricing", "//evil.com", "https://user:pw@x.com/", "not a url"]) {
+      expect(parse(bad).success, bad).toBe(false);
+    }
+  });
+
+  it("rejects a URL longer than 300 characters", () => {
+    expect(parse(`https://x.com/${"a".repeat(290)}`).success).toBe(false);
+    expect(parse(`https://x.com/${"a".repeat(280)}`).success).toBe(true);
+  });
+});
+
+describe("resolveModelPricingUrl", () => {
+  it("uses the saved https URL, else the console's /pricing", () => {
+    expect(resolveModelPricingUrl("https://x.com/p", "https://ai.aedoxy.com")).toBe("https://x.com/p");
+    expect(resolveModelPricingUrl("", "https://ai.aedoxy.com/")).toBe("https://ai.aedoxy.com/pricing");
+    expect(resolveModelPricingUrl("   ", "https://ai.aedoxy.com")).toBe("https://ai.aedoxy.com/pricing");
+  });
+
+  it("never returns an unsafe stored value (hand-edited rows)", () => {
+    expect(resolveModelPricingUrl("javascript:alert(1)", "https://ai.aedoxy.com")).toBe("https://ai.aedoxy.com/pricing");
   });
 });

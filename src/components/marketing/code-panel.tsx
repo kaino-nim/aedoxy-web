@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ProviderLogo } from "@/components/brand/provider-logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -9,10 +10,12 @@ import { highlightLine } from "@/lib/highlight";
 import { buildSnippet, SNIPPET_LANGS, type SnippetLang } from "@/lib/snippets";
 import { cn } from "@/lib/utils";
 
-/** Hero card: tabbed code sample (python/node/curl), copy button, example response and model chips. */
-export function CodePanel({ apiBaseUrl, modelIds, fallbackModel }: { apiBaseUrl: string; modelIds: string[]; fallbackModel: string }) {
+export type SampleModel = { id: string; providerId: string | null };
+
+/** Hero window: model list, tabbed code sample (python/node/curl) with copy, and the example response. */
+export function CodePanel({ apiBaseUrl, models, fallbackModel }: { apiBaseUrl: string; models: SampleModel[]; fallbackModel: string }) {
   const [lang, setLang] = useState<SnippetLang>("python");
-  const [model, setModel] = useState(modelIds[0] ?? fallbackModel);
+  const [model, setModel] = useState(models[0]?.id ?? fallbackModel);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -31,9 +34,39 @@ export function CodePanel({ apiBaseUrl, modelIds, fallbackModel }: { apiBaseUrl:
   }
 
   return (
-    <div className="overflow-hidden rounded-[18px] bg-surface shadow-card-hover">
-      <Tabs value={lang} onValueChange={(v) => setLang(v as SnippetLang)} className="gap-0">
-        <div className="flex items-center justify-between border-b border-line px-3 sm:px-4">
+    <div
+      className={cn(
+        "grid overflow-hidden rounded-t-[14px] border border-b-0 border-line bg-surface text-left shadow-card-hover",
+        models.length > 0 && "lg:grid-cols-[13rem_minmax(0,1fr)] xl:grid-cols-[14rem_minmax(0,1fr)_17rem]",
+      )}
+    >
+      {models.length > 0 && (
+        <div className="border-b border-line lg:row-span-2 lg:border-r lg:border-b-0 xl:row-span-1">
+          <p className="flex h-11 items-center px-4 text-xs text-faint lg:border-b lg:border-line">Model</p>
+          <ToggleGroup
+            type="single"
+            spacing={1}
+            value={model}
+            onValueChange={(v) => v && setModel(v)}
+            aria-label="Pilih model untuk contoh kode"
+            className="w-full flex-wrap px-2 pb-2 lg:flex-col lg:items-stretch lg:pt-2"
+          >
+            {models.map((m) => (
+              <ToggleGroupItem
+                key={m.id}
+                value={m.id}
+                className="h-10 min-w-0 justify-start gap-2.5 rounded-md px-2.5 font-mono text-xs font-normal text-fg-muted hover:bg-alt hover:text-heading data-[state=on]:bg-primary-tint data-[state=on]:text-primary-ink data-[state=on]:hover:bg-primary-tint"
+              >
+                {m.providerId && <ProviderLogo id={m.providerId} name={m.providerId} size={16} />}
+                <span className="truncate">{m.id}</span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
+      )}
+
+      <Tabs value={lang} onValueChange={(v) => setLang(v as SnippetLang)} className="min-w-0 gap-0">
+        <div className="flex h-11 items-center justify-between border-b border-line px-2 sm:px-3">
           <TabsList variant="line" className="h-11 gap-0 p-0">
             {SNIPPET_LANGS.map((l) => (
               <TabsTrigger key={l} value={l} className="h-11 flex-none rounded-none px-3 font-mono text-[13px] after:bottom-0">
@@ -41,13 +74,8 @@ export function CodePanel({ apiBaseUrl, modelIds, fallbackModel }: { apiBaseUrl:
               </TabsTrigger>
             ))}
           </TabsList>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={copy}
-            className="h-auto gap-1.5 rounded-md px-2 py-1.5 font-mono text-xs text-fg-muted hover:bg-transparent hover:text-fg dark:hover:bg-transparent"
-          >
-            {copied ? <Check className="size-3.5 text-primary-ink" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+          <Button type="button" variant="ghost" onClick={copy} className="h-9 gap-1.5 px-2.5 font-mono text-xs text-fg-muted">
+            {copied ? <Check className="text-primary-ink" data-icon="inline-start" aria-hidden /> : <Copy data-icon="inline-start" aria-hidden />}
             {copied ? "Disalin" : "Salin"}
             <span className="sr-only" aria-live="polite">
               {copied ? "Kode disalin ke clipboard" : ""}
@@ -57,13 +85,10 @@ export function CodePanel({ apiBaseUrl, modelIds, fallbackModel }: { apiBaseUrl:
         {SNIPPET_LANGS.map((l) => {
           const lines = buildSnippet(l, apiBaseUrl, model).split("\n");
           return (
-            <TabsContent key={l} value={l} className="m-0 overflow-x-auto py-3.5">
-              <pre className="min-w-max font-mono text-[13px] leading-[21px] text-fg">
+            <TabsContent key={l} value={l} className="m-0 overflow-x-auto py-4">
+              <pre translate="no" className="min-w-max font-mono text-[13px] leading-[21px] text-fg">
                 {lines.map((text, i) => (
-                  <code
-                    key={i}
-                    className={cn("block px-4", text.includes(model) && "bg-primary-tint")}
-                  >
+                  <code key={i} className={cn("block px-4", text.includes(model) && "bg-primary-tint")}>
                     <span aria-hidden className="mr-4 inline-block w-4 text-right text-faint select-none">
                       {i + 1}
                     </span>
@@ -77,39 +102,23 @@ export function CodePanel({ apiBaseUrl, modelIds, fallbackModel }: { apiBaseUrl:
         })}
       </Tabs>
 
-      <div className="border-t border-line bg-surface-2 px-4 py-3.5 font-mono text-xs">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-fg-muted">
+      <div className={cn("border-t border-line bg-surface-2", models.length > 0 && "lg:col-start-2 xl:col-start-auto xl:border-t-0 xl:border-l")}>
+        <div className="flex h-11 items-center gap-3 border-b border-line px-4 font-mono text-xs text-fg-muted">
           <span className="inline-flex items-center gap-2">
             <span className="size-2 rounded-full bg-success" aria-hidden />
             200 OK
           </span>
-          <span aria-hidden>·</span>
           <span>streaming</span>
-          <span className="rounded border border-line-strong px-1.5 py-px text-[10px] tracking-wider text-faint uppercase">Contoh</span>
+          <span className="ml-auto rounded border border-line-strong px-1.5 py-px text-[10px] text-faint">Contoh</span>
         </div>
-        <p className="mt-3 font-sans text-[15px] text-fg">
-          Halo! Ada yang bisa saya bantu? <span className="cursor-blink text-fg" aria-hidden />
-        </p>
-        {modelIds.length > 0 && (
-          <ToggleGroup
-            type="single"
-            value={model}
-            onValueChange={(v) => v && setModel(v)}
-            aria-label="Pilih model untuk contoh kode"
-            className="mt-3 w-full flex-wrap"
-          >
-            <span className="text-faint">coba →</span>
-            {modelIds.map((id) => (
-              <ToggleGroupItem
-                key={id}
-                value={id}
-                className="h-auto min-w-0 rounded-md border border-transparent px-2 py-1 font-mono text-xs font-normal text-fg-muted hover:bg-transparent hover:text-fg data-[state=on]:border-primary-ink/30 data-[state=on]:bg-primary-tint data-[state=on]:text-primary-ink data-[state=on]:hover:bg-primary-tint data-[state=on]:hover:text-primary-ink"
-              >
-                {id}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
+        <div className="flex flex-col gap-3 p-4">
+          <p className="font-mono text-xs text-faint">
+            model: <span className="text-fg-soft">{model}</span>
+          </p>
+          <p className="text-[15px] leading-relaxed text-fg">
+            Halo! Ada yang bisa saya bantu? <span className="cursor-blink text-fg" aria-hidden />
+          </p>
+        </div>
       </div>
     </div>
   );

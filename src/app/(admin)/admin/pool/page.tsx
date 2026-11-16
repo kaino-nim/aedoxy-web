@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LedgerTable } from "@/components/admin/ledger-table";
-import { Card, Field, NativeSelect, PAGE_SIZE, Pagination, pageParam, param, Stat, type SearchParams } from "@/components/admin/common";
+import { Card, param, Stat, type SearchParams } from "@/components/admin/common";
 import { AdjustPoolForm, ThresholdForm } from "@/components/admin/pool-forms";
 import { PageHeader } from "@/components/console/page-header";
 import { TablePageSkeleton } from "@/components/console/skeletons";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DEFAULT_TABLE_PAGE_SIZE } from "@/lib/table-query";
 import { UsdIdr } from "@/components/usd-idr";
 import { formatUsd, QUOTA_PER_USD } from "@/lib/format";
 import { requireAdmin } from "@/server/admin";
 import { getFxRate } from "@/server/catalog";
-import { getPoolOverview, LEDGER_TYPES, listLedger } from "@/server/domain/admin-pool";
+import { getPoolOverview, listLedger } from "@/server/domain/admin-pool";
 import { DEFAULT_LOW_THRESHOLD_QUOTA } from "@/server/domain/pool-status";
 
 export const metadata: Metadata = { title: "Pool" };
@@ -32,8 +32,7 @@ async function Pool({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin();
   const sp = await searchParams;
   const filter = { type: param(sp.type), from: param(sp.from), to: param(sp.to) };
-  const page = pageParam(sp.page);
-  const [overview, ledger, fx] = await Promise.all([getPoolOverview(), listLedger(filter, page, PAGE_SIZE), getFxRate()]);
+  const [overview, ledger, fx] = await Promise.all([getPoolOverview(), listLedger(filter, 1, DEFAULT_TABLE_PAGE_SIZE), getFxRate()]);
 
   const exportQuery = new URLSearchParams(Object.entries(filter).filter((e): e is [string, string] => Boolean(e[1]))).toString();
 
@@ -72,39 +71,21 @@ async function Pool({ searchParams }: { searchParams: SearchParams }) {
             />
           </div>
 
-          <AdjustPoolForm />
-          <ThresholdForm currentUsd={overview.lowThreshold / QUOTA_PER_USD} />
-          <p className="text-xs text-faint">Ambang yang berlaku sekarang: {usd(overview.lowThreshold > 0 ? overview.lowThreshold : DEFAULT_LOW_THRESHOLD_QUOTA)}.</p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AdjustPoolForm />
+            <ThresholdForm
+              currentUsd={overview.lowThreshold / QUOTA_PER_USD}
+              effectiveText={usd(overview.lowThreshold > 0 ? overview.lowThreshold : DEFAULT_LOW_THRESHOLD_QUOTA)}
+            />
+          </div>
         </>
       )}
 
       <h2 className="pt-4 text-xl font-medium tracking-[-0.02em] text-heading">Ledger</h2>
-      <form method="get" className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        <Field label="Tipe" htmlFor="type">
-          <NativeSelect id="type" name="type" defaultValue={filter.type ?? ""}>
-            <option value="">Semua</option>
-            {LEDGER_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Field label="Dari (WIB)" htmlFor="from">
-          <Input id="from" name="from" type="date" defaultValue={filter.from ?? ""} className="h-9 bg-background" />
-        </Field>
-        <Field label="Sampai (WIB)" htmlFor="to">
-          <Input id="to" name="to" type="date" defaultValue={filter.to ?? ""} className="h-9 bg-background" />
-        </Field>
-        <div className="flex gap-2">
-          <Button type="submit" className="h-9 px-4 text-sm font-semibold">
-            Terapkan
-          </Button>
-        </div>
-      </form>
-
-      <LedgerTable rows={ledger.rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() }))} />
-      <Pagination basePath="/admin/pool" params={filter} page={page} total={ledger.total} />
+      <LedgerTable
+        initial={{ rows: ledger.rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })), total: ledger.total }}
+        initialFilters={Object.fromEntries(Object.entries(filter).filter((e): e is [string, string] => Boolean(e[1])))}
+      />
     </div>
   );
 }

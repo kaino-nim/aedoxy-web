@@ -1,6 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { DitherPanel } from "@/components/brand/dither-panel";
 import { Button } from "@/components/ui/button";
 import { site } from "@/config/site";
 import { SessionCta } from "./session-cta";
@@ -8,10 +7,12 @@ import { SessionCta } from "./session-cta";
 export function CtaSection() {
   return (
     <section className="container-x pb-20 sm:pb-28">
-      <div className="grad-border relative overflow-hidden rounded-[22px]">
-        <DitherPanel
-          seed={21}
-          className="absolute inset-y-0 right-0 hidden w-3/5 [mask-image:linear-gradient(to_right,transparent,#000_55%)] md:block"
+      <div data-rise className="grad-border relative overflow-hidden rounded-[22px]">
+        {/* Decorative pixel-art skyline (public/art/cta-skyline.svg); its left edge fades into the card so the copy stays readable. */}
+        <div
+          aria-hidden
+          className="absolute inset-y-0 right-0 hidden w-3/5 bg-cover bg-bottom bg-no-repeat [mask-image:linear-gradient(to_right,transparent,#000_55%)] md:block"
+          style={{ backgroundImage: "url(/art/cta-skyline.svg)" }}
         />
         <div className="relative px-6 py-14 sm:px-12 sm:py-20 lg:py-24">
           <h2 className="max-w-xl text-[44px] leading-[1.02] font-medium tracking-[-0.045em] text-heading sm:text-6xl lg:text-7xl">

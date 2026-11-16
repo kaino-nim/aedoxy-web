@@ -22,17 +22,21 @@
   --faint: #5f6672;
   --line: rgba(3, 8, 10, 0.08);
   --line-strong: rgba(3, 8, 10, 0.16);
-  --primary: #187565;
-  --primary-ink: #187565;
-  --primary-tint: #ddf1ec;
-  --grad-from: #208a7c;
-  --grad-to: #5075ce;
-  --illus: #2a6c5f;
-  --illus-mid: #5fae9a;
-  --illus-hi: #d7f1ea;
+  /* Brand: primary #ff9f1c with white text (owner's choice; white on #ff9f1c is only 2.05:1, so primary labels are semibold), secondary #ff9f1c, accent #ffbf69 with dark text. */
+  --primary: #ff9f1c;
+  /* Orange as text on light surfaces: 5.1:1 on --bg, 5.5:1 on white (the raw primary would be 2.4:1). */
+  --primary-ink: #a84f00;
+  --primary-tint: #fff0dc;
+  /* Heading gradient ends stay at >= 3:1 on --bg (large text). */
+  --grad-from: #a84f00;
+  --grad-to: #e06b00;
+  --illus: #b85c00;
+  --illus-mid: #ff9f1c;
+  --illus-hi: #ffd9a0;
   --dark: #0f1416;
-  --dark-accent: #5eead4;
-  --accent-warm: #d66b3d;
+  --dark-accent: #ffbf69;
+  /* Focus ring: 4:1 on --bg. */
+  --accent-warm: #c25e00;
   --success: #16a34a;
   --danger: #dc2626;
   --warn: #8f6000;
@@ -48,13 +52,13 @@
   --card-foreground: var(--fg);
   --popover: var(--surface);
   --popover-foreground: var(--fg);
-  --primary-foreground: #ffffff;
-  --secondary: var(--surface);
-  --secondary-foreground: var(--fg);
+  --primary-foreground: #ffffff; /* 2.05:1 on #ff9f1c, below AA by request */
+  --secondary: #ff9f1c;
+  --secondary-foreground: #ffffff; /* 2.05:1 on #ff9f1c, same as primary (owner's choice); labels on it are semibold */
   --muted: var(--bg-alt);
   --muted-foreground: var(--fg-muted);
-  --accent: var(--primary-tint);
-  --accent-foreground: var(--fg);
+  --accent: #ffbf69;
+  --accent-foreground: #1c1100; /* 11:1 on #ffbf69 */
   --destructive: var(--danger);
   --border: var(--line);
   --input: var(--line-strong);
@@ -84,13 +88,14 @@
   --faint: #8d9ba0;
   --line: rgba(255, 255, 255, 0.09);
   --line-strong: rgba(255, 255, 255, 0.18);
-  --primary-ink: #5eead4;
-  --primary-tint: rgba(94, 234, 212, 0.12);
-  --grad-from: #4fd1bd;
-  --grad-to: #8aa8f0;
-  --illus: #1f5a4f;
-  --illus-mid: #3f8a78;
-  --illus-hi: #9ad9c9;
+  --primary-ink: #ff9f1c; /* 9.3:1 on --bg */
+  --primary-tint: rgba(255, 159, 28, 0.16);
+  --grad-from: #ff9f1c;
+  --grad-to: #ffbf69;
+  --illus: #7a3a00;
+  --illus-mid: #c25e00;
+  --illus-hi: #ffbf69;
+  --accent-warm: #ffbf69;
   --warn: #f5c451;
   --wordmark: #1a2326;
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -203,10 +208,10 @@
   --faint: #8d9ba0;
   --line: rgba(255, 255, 255, 0.1);
   --line-strong: rgba(255, 255, 255, 0.18);
-  --primary-ink: #5eead4;
-  --primary-tint: rgba(94, 234, 212, 0.12);
-  --grad-from: #5eead4;
-  --grad-to: #7aa2f7;
+  --primary-ink: #ff9f1c;
+  --primary-tint: rgba(255, 159, 28, 0.16);
+  --grad-from: #ff9f1c;
+  --grad-to: #ffbf69;
   background: var(--dark);
   color: var(--fg);
 }
@@ -242,11 +247,16 @@
   color: var(--faint);
 }
 
+/* Solid ink colour first; the gradient clip only applies where the browser supports it. */
 @utility text-grad {
-  background-image: linear-gradient(90deg, var(--grad-from), var(--grad-to));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--primary-ink);
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    background-image: linear-gradient(100deg, var(--grad-from), var(--grad-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 }
 
 /* Card with the gradient border used for highlighted cards. */
@@ -255,6 +265,30 @@
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
     linear-gradient(135deg, var(--grad-from), var(--grad-to)) border-box;
+}
+
+/* Native checkbox with a white check on the primary fill. `accent-color` would let the browser pick a black check on #ff9f1c. */
+@utility check-primary {
+  appearance: none;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--line-strong);
+  background-color: var(--surface);
+  background-size: 100% 100%;
+  &:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.5;
+  }
 }
 
 @utility section-rule {
@@ -275,15 +309,82 @@
   opacity: 0.5;
 }
 
-/* Provider logo marquee. Pauses on hover/focus, static under reduced motion. */
-.marquee {
+/* Hero frame: the brand orange, lit from the top edge, so the window reads as rising out of it. */
+.hero-ground {
+  background:
+    radial-gradient(70% 90% at 50% 0%, color-mix(in oklab, var(--illus-hi) 45%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--illus-mid), var(--illus) 65%);
+}
+
+/* One entrance on load, CSS only: content is visible without JS and rests under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-enter {
+    animation: hero-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .hero-enter-late {
+    animation-delay: 140ms;
+  }
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* Request route diagram: a pulse runs along each line; hidden under reduced motion. */
+/* Positioning comes from the markup (relative or absolute), since unlayered CSS would beat the utilities. */
+.route-line {
   overflow: hidden;
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  background: var(--line-strong);
+}
+.route-line::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, var(--primary-ink), transparent);
+  /* Rest state sits off the line, so nothing stays lit after the pass. */
+  transform: translateX(-100%);
+  animation: route-pulse 3s ease-in-out 1;
+}
+/* One 3s pass on load keeps motion under 5s without a pause button; it loops only while pointed at. */
+.route:hover .route-line::after {
+  animation-iteration-count: infinite;
+}
+.route-line-y::after {
+  inset-block: auto;
+  inset-inline: 0;
+  width: auto;
+  height: 28%;
+  background: linear-gradient(180deg, transparent, var(--primary-ink), transparent);
+  transform: translateY(-100%);
+  animation-name: route-pulse-y;
+}
+@keyframes route-pulse {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(360%);
+  }
+}
+@keyframes route-pulse-y {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(360%);
+  }
+}
+
+/* Provider marquee: two identical groups, the track shifts by exactly one group (-50%) for a seamless loop. */
+.marquee {
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
 }
 .marquee-track {
-  display: flex;
-  width: max-content;
-  animation: marquee 48s linear infinite;
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
 }
 .marquee:hover .marquee-track,
 .marquee:focus-within .marquee-track {
@@ -292,6 +393,25 @@
 @keyframes marquee {
   to {
     transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .marquee-track {
+    animation: none;
+    width: auto;
+    height: auto;
+    padding-block: 1rem;
+  }
+  .marquee-group {
+    flex-wrap: wrap;
+    row-gap: 1rem;
+  }
+  .marquee-dup {
+    display: none;
   }
 }
 
@@ -344,26 +464,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none;
-    width: auto;
-    flex-wrap: wrap;
-    justify-content: center;
-    row-gap: 0.5rem;
-  }
-  .marquee {
-    mask-image: none;
-  }
-  .marquee-track > * {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .marquee-dup {
-    display: none;
-  }
   .cursor-blink,
-  .ticker-item {
+  .ticker-item,
+  .route-line::after {
     animation: none;
+  }
+  .route-line::after {
+    display: none;
   }
   html {
     scroll-behavior: auto;

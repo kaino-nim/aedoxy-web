@@ -20,7 +20,7 @@ describe("DataTable", () => {
     expect(html).toContain("item-10");
     expect(html).not.toContain("item-11<");
     expect(html).toContain("Menampilkan 1-10 dari 25");
-    expect(html).toContain("Berikutnya");
+    expect(html).toContain("Halaman berikutnya");
     expect(html).toContain('aria-sort="none"');
   });
 
@@ -47,11 +47,61 @@ describe("DataTable", () => {
     expect(html).not.toContain("item-1<");
   });
 
-  it("manual mode renders all given rows, with no search box or pager", () => {
-    const html = render({ n: 25, manual: true });
-    expect(html).toContain("item-25");
+  it("shows page size, first/last buttons and the page count", () => {
+    const html = render({ n: 25 });
+    expect(html).toContain("Baris per halaman");
+    expect(html).toContain('aria-label="Halaman pertama"');
+    expect(html).toContain('aria-label="Halaman terakhir"');
+    expect(html).toContain("Halaman 1 dari 3");
+  });
+
+  it("renders a toolbar filter next to the search box", () => {
+    const html = render({ n: 3, filters: [{ id: "name", label: "Nama", type: "select", options: [{ value: "item-1", label: "Item 1" }] }] });
+    expect(html).toContain('type="search"');
+    expect(html).toContain('aria-label="Nama"');
+  });
+
+  it("server mode shows the given page with the server's total, and only whitelisted headers sort", () => {
+    const html = render({
+      n: 10,
+      server: {
+        rowCount: 95,
+        pagination: { pageIndex: 2, pageSize: 10 },
+        onPaginationChange: () => {},
+        sorting: [],
+        onSortingChange: () => {},
+        sortable: ["name"],
+        search: "",
+        onSearchChange: () => {},
+        filterValues: {},
+        onFilterChange: () => {},
+        fetching: false,
+      },
+    });
+    expect(html).toContain("item-10");
+    expect(html).toContain("Menampilkan 21-30 dari 95");
+    expect(html).toContain("Halaman 3 dari 10");
+    expect((html.match(/aria-sort=/g) ?? []).length).toBe(1);
+  });
+
+  it("server mode without a search value has no search box", () => {
+    const html = render({
+      n: 2,
+      server: {
+        rowCount: 2,
+        pagination: { pageIndex: 0, pageSize: 10 },
+        onPaginationChange: () => {},
+        sorting: [],
+        onSortingChange: () => {},
+        sortable: [],
+        search: null,
+        onSearchChange: () => {},
+        filterValues: {},
+        onFilterChange: () => {},
+        fetching: false,
+      },
+    });
     expect(html).not.toContain('type="search"');
-    expect(html).not.toContain("Menampilkan");
   });
 
   it("hides a column below its breakpoint on header and cells, and compact tightens padding", () => {

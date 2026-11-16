@@ -2,12 +2,12 @@
 
 import { ArrowDown, ArrowUp, Copy, MoreHorizontal, Pencil, Power } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { duplicatePlanAction, movePlanAction } from "@/app/(admin)/admin/plans/actions";
 import { EnabledDialog, PriceDialog } from "@/components/admin/plan-dialogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { DataTable, dataColumns, optionsFrom, type FilterDef } from "@/components/ui/data-table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatIdr, formatUsd, QUOTA_PER_USD } from "@/lib/format";
 
@@ -164,5 +164,6 @@ const columns = col.columns([
 ]);
 
 export function PlansTable({ rows }: { rows: PlanTableRow[] }) {
-  return <DataTable data={rows} columns={columns} caption="Daftar paket" compact searchLabel="Cari paket" getRowId={(p) => String(p.id)} empty="Belum ada paket." />;
+  const filters = useMemo<FilterDef[]>(() => [{ id: "period", label: "Periode", type: "select", options: optionsFrom(rows.map((p) => p.period)) }], [rows]);
+  return <DataTable data={rows} columns={columns} caption="Daftar paket" compact searchLabel="Cari paket" filters={filters} getRowId={(p) => String(p.id)} empty="Belum ada paket." />;
 }

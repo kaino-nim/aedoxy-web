@@ -1,13 +1,12 @@
 /**
  * Docs copy. `{brand}` and `{envKey}` are placeholders filled by `fillDict`; `**bold**` and `` `code` `` are
- * rendered by FormattedText. Indonesian is the source text, English must keep the same keys and array lengths.
+ * rendered by FormattedText. The docs are Indonesian only.
  */
 export interface DocsDict {
   common: {
     copy: string;
     copied: string;
     copiedAnnounce: string;
-    switchLanguage: string;
     showKey: string;
     hideKey: string;
   };

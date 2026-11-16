@@ -1,4 +1,4 @@
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Hourglass, Layers, QrCode, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { UsdIdr } from "@/components/usd-idr";
 import { site } from "@/config/site";
@@ -19,11 +19,18 @@ const STEPS = [
 ];
 
 export function BillingSection({ plan, fx }: { plan: Plan | null; fx: FxRate | null }) {
+  // Facts already stated elsewhere on the page; only the active period comes from the plan.
+  const facts = [
+    { icon: CalendarClock, title: "Masa aktif", text: plan ? `${plan.durationDays} hari sejak pembayaran terkonfirmasi` : "Berlaku sejak pembayaran terkonfirmasi" },
+    { icon: QrCode, title: "QRIS atau Virtual Account", text: "Bayar flat sekali per periode" },
+    { icon: Layers, title: "Satu paket aktif", text: "Paket baru menggantikan yang sedang aktif" },
+    { icon: Hourglass, title: "Sisa kredit hangus", text: "Tidak dapat diuangkan atau dipindahkan" },
+  ];
   return (
     <section className="section-dark section-rule border-y border-line">
       <div className="container-x grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.05fr_1fr] lg:gap-20">
         <div>
-          <div className="reveal">
+          <div data-rise>
             <p className="eyebrow">Kredit paket</p>
             <h2 className="mt-4 text-[34px] leading-[1.08] font-medium tracking-[-0.035em] text-heading sm:text-5xl">
               Bayar flat sekali.
@@ -38,7 +45,7 @@ export function BillingSection({ plan, fx }: { plan: Plan | null; fx: FxRate | n
 
           <ol className="mt-12 border-t border-line">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="reveal grid grid-cols-[2rem_1fr] gap-x-3 border-b border-line py-6">
+              <li key={s.title} data-rise className="grid grid-cols-[2rem_1fr] gap-x-3 border-b border-line py-6">
                 <span className={`pt-1 font-mono text-sm ${s.last ? "text-primary-ink" : "text-faint"}`}>{i + 1}</span>
                 <div>
                   <h3 className="flex flex-wrap items-center gap-3 text-xl font-medium tracking-[-0.01em]">
@@ -55,14 +62,28 @@ export function BillingSection({ plan, fx }: { plan: Plan | null; fx: FxRate | n
           </ol>
         </div>
 
-        <div className="flex flex-col justify-between gap-8 lg:pt-4">
+        <div className="flex flex-col gap-6 lg:pt-4">
           <Link href={site.links.docs} className="inline-flex items-center gap-1.5 self-end text-sm font-semibold text-primary-ink hover:underline">
             Baca dokumentasi
             <ArrowUpRight className="size-3.5" aria-hidden />
           </Link>
 
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {facts.map(({ icon: Icon, title, text }) => (
+              <li key={title} data-rise className="flex gap-3 rounded-xl border border-line bg-surface p-4">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-tint text-primary-ink">
+                  <Icon className="size-[18px]" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-medium text-heading">{title}</span>
+                  <span className="mt-0.5 block text-sm leading-snug text-fg-muted">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
           {plan && (
-            <div className="reveal grad-border rounded-card-lg p-6">
+            <div data-rise className="grad-border rounded-card-lg p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[15px] font-medium text-heading">

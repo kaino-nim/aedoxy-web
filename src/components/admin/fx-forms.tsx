@@ -42,7 +42,7 @@ export function FxSettingsForm({
           </Field>
         </div>
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-heading">
-          <input type="checkbox" name="showConversion" defaultChecked={initial.showConversion} className="size-4 accent-primary" />
+          <input type="checkbox" name="showConversion" defaultChecked={initial.showConversion} className="size-4 check-primary" />
           Tampilkan konversi rupiah
         </label>
         <FormResult error={state.error} ok={state.ok} />

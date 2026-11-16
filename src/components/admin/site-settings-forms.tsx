@@ -289,7 +289,7 @@ export function AnnouncementForm({ initial }: { initial: SiteSettings["announcem
   );
 }
 
-export function DocsForm({ initial }: { initial: Pick<SiteSettings, "apiBaseUrl" | "sampleModel"> }) {
+export function DocsForm({ initial }: { initial: Pick<SiteSettings, "apiBaseUrl" | "sampleModel" | "modelPricingUrl"> }) {
   const [apiBaseUrl, setApiBaseUrl] = useState(initial.apiBaseUrl);
   const [sampleModel, setSampleModel] = useState(initial.sampleModel);
   return (
@@ -301,6 +301,9 @@ export function DocsForm({ initial }: { initial: Pick<SiteSettings, "apiBaseUrl"
           </Field>
           <Field label="Contoh model" htmlFor="sampleModel" error={fe.sampleModel?.[0]}>
             <Input id="sampleModel" name="sampleModel" value={sampleModel} onChange={(e) => setSampleModel(e.target.value)} maxLength={80} required className={inputClass} />
+          </Field>
+          <Field label="URL halaman harga model" htmlFor="modelPricingUrl" hint="Tujuan tombol harga lengkap di /models. Harus https. Kosong = halaman /pricing di console New API." error={fe.modelPricingUrl?.[0]}>
+            <Input id="modelPricingUrl" name="modelPricingUrl" inputMode="url" defaultValue={initial.modelPricingUrl} maxLength={300} placeholder="https://ai.aedoxy.com/pricing" className={inputClass} />
           </Field>
           <div>
             <p className="mono-label mb-1.5">Contoh kode</p>

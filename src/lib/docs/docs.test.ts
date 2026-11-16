@@ -1,13 +1,12 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DICTIONARIES, fillDict, getDict } from "./i18n";
+import { fillDict, getDict } from "./i18n";
 import { pickActiveSection } from "./sections";
 import { brandEnvKey, brandSlug, buildDocsSnippets, type SnippetInput } from "./snippets";
 
 const base: SnippetInput = {
   brandName: "Aedoxy",
-  lang: "id",
   gatewayUrl: "",
   apiKey: "",
   model: "",
@@ -53,9 +52,8 @@ describe("buildDocsSnippets", () => {
     expect(JSON.parse(/-d '(.*)'$/.exec(s.codes.curl)![1]).model).toBe('m"1');
   });
 
-  it("uses the sample message of the chosen language", () => {
-    expect(build({ lang: "id" }).codes.python).toContain("Halo!");
-    expect(build({ lang: "en" }).codes.python).toContain("Hello!");
+  it("uses the Indonesian sample message", () => {
+    expect(build().codes.python).toContain("Halo!");
   });
 });
 
@@ -69,35 +67,20 @@ describe("brandSlug / brandEnvKey", () => {
   });
 });
 
-type Shape = string | Shape[] | { [k: string]: Shape };
-function shape(v: unknown): Shape {
-  if (typeof v === "string") return "s";
-  if (Array.isArray(v)) return v.map(shape);
-  return Object.fromEntries(Object.entries(v as object).map(([k, x]) => [k, shape(x)]));
-}
-
-describe("i18n", () => {
-  it("id and en have identical keys and array lengths", () => {
-    expect(shape(DICTIONARIES.en)).toEqual(shape(DICTIONARIES.id));
-  });
-
+describe("docs copy", () => {
   it("has no empty strings", () => {
-    for (const dict of Object.values(DICTIONARIES)) {
-      const walk = (v: unknown, path: string) => {
-        if (typeof v === "string") return expect(v.trim(), path).not.toBe("");
-        Object.entries(v as object).forEach(([k, x]) => walk(x, `${path}.${k}`));
-      };
-      walk(dict, "dict");
-    }
+    const walk = (v: unknown, path: string) => {
+      if (typeof v === "string") return expect(v.trim(), path).not.toBe("");
+      Object.entries(v as object).forEach(([k, x]) => walk(x, `${path}.${k}`));
+    };
+    walk(getDict({ brand: "Aedoxy", envKey: "AEDOXY_API_KEY" }), "dict");
   });
 
   it("replaces placeholders with the brand and env var", () => {
-    for (const lang of ["id", "en"] as const) {
-      const json = JSON.stringify(getDict(lang, { brand: "Acme $& AI", envKey: "ACME_API_KEY" }));
-      expect(json).not.toMatch(/\{(brand|envKey)\}/);
-      expect(json).toContain("Acme $& AI");
-      expect(json).toContain("ACME_API_KEY");
-    }
+    const json = JSON.stringify(getDict({ brand: "Acme $& AI", envKey: "ACME_API_KEY" }));
+    expect(json).not.toMatch(/\{(brand|envKey)\}/);
+    expect(json).toContain("Acme $& AI");
+    expect(json).toContain("ACME_API_KEY");
   });
 
   it("fillDict leaves unknown placeholders and non-strings alone", () => {

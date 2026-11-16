@@ -38,17 +38,25 @@ async function Security() {
     <div className="space-y-6">
       <PageHeader eyebrow="Admin" title="Keamanan" />
       {enabled ? (
-        <>
-          <SectionCard
-            title="Autentikasi dua faktor aktif"
-            description="Mengganti kredensial (kode cadangan, passkey, reset 2FA) meminta kode 6 digit dari aplikasi autentikator Anda, atau salah satu kode cadangan. Perubahan konfigurasi tidak meminta kode."
-          >
-            <p className="text-sm text-success">2FA aktif untuk akun ini.</p>
-          </SectionCard>
-          <PasskeyCard items={passkeys} />
-          <BackupCodesCard />
-          <ResetTwoFactorCard />
-        </>
+        // Two independent columns instead of one grid: card heights differ a lot (status is short, passkey and the two
+        // forms are tall), and a grid would leave gaps under the short ones. Left: status + passkey, right: backup codes +
+        // reset (about the same height). On mobile the columns stack in the original reading order.
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <SectionCard
+              stacked
+              title="Autentikasi dua faktor aktif"
+              description="Mengganti kredensial (kode cadangan, passkey, reset 2FA) meminta kode 6 digit dari aplikasi autentikator Anda, atau salah satu kode cadangan. Perubahan konfigurasi tidak meminta kode."
+            >
+              <p className="text-sm text-success">2FA aktif untuk akun ini.</p>
+            </SectionCard>
+            <PasskeyCard items={passkeys} />
+          </div>
+          <div className="flex flex-col gap-4">
+            <BackupCodesCard />
+            <ResetTwoFactorCard />
+          </div>
+        </div>
       ) : (
         <SectionCard title="Aktifkan autentikasi dua faktor" description="Halaman admin lain terkunci sampai 2FA aktif.">
           <TwoFactorSetup />

@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createPromoAction, stopPromoAction } from "@/app/(admin)/admin/promos/actions";
 import { Button } from "@/components/ui/button";
+import { CheckButton } from "@/components/ui/check-button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { discountedAmount, isValidPromoValue, type PromoKind } from "@/lib/discount";
@@ -13,6 +14,9 @@ import { Card, Field, NativeSelect } from "./common";
 import { FormResult } from "./totp-field";
 
 const input = "h-9 bg-background";
+/** Two columns from sm, three from lg; the group title spans the whole row. */
+const GRID = "gap-x-4 gap-y-3 sm:grid-cols-2 lg:grid-cols-3 grid";
+const GROUP_TITLE = "col-span-full text-sm font-medium text-heading";
 
 type PlanOption = { id: number; name: string; priceIdr: number };
 
@@ -29,8 +33,12 @@ export function PromoForm({ plans }: { plans: PlanOption[] }) {
   const preview = sample && isValidPromoValue(kind, n) ? discountedAmount(sample.priceIdr, kind, n) : null;
 
   return (
-    <form action={action} className="space-y-6">
-      <Card className="grid gap-4 sm:grid-cols-2">
+    <form action={action} className="w-full space-y-4">
+      {/* lg+: the form on the left, "Berlaku untuk" stretches down the right column. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch">
+      <div className="space-y-4">
+      <Card className={`py-4 ${GRID}`}>
+        <h2 className={GROUP_TITLE}>Promo</h2>
         <Field label="Nama promo" htmlFor="name" error={fe.name?.[0]}>
           <Input id="name" name="name" required maxLength={80} className={input} />
         </Field>
@@ -46,6 +54,10 @@ export function PromoForm({ plans }: { plans: PlanOption[] }) {
         <Field label={kind === "percent" ? "Persen" : "Potongan (Rp)"} htmlFor="value" error={fe.value?.[0]}>
           <Input id="value" name="value" inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} required className={input} />
         </Field>
+      </Card>
+
+      <Card className={`py-4 ${GRID}`}>
+        <h2 className={GROUP_TITLE}>Masa berlaku &amp; batas</h2>
         <Field label="Mulai (WIB)" htmlFor="startsAt" hint="Kosong = langsung." error={fe.startsAt?.[0]}>
           <Input id="startsAt" name="startsAt" type="datetime-local" className={input} />
         </Field>
@@ -60,20 +72,22 @@ export function PromoForm({ plans }: { plans: PlanOption[] }) {
         </Field>
       </Card>
 
-      <Card>
+
+      </div>
+
+      <div className="space-y-4">
+      <Card className="flex flex-col py-4">
         <p className="mono-label">Berlaku untuk</p>
-        <p className="mt-1 text-xs text-faint">Tidak ada yang dicentang = semua paket.</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <p className="mt-1 text-xs text-faint">Tidak ada yang dipilih = semua paket.</p>
+        <div className="mt-3 flex flex-col gap-2">
           {plans.map((p) => (
-            <label key={p.id} className="flex items-center gap-2.5 text-sm text-heading">
-              <input type="checkbox" name={`plan_${p.id}`} className="size-4 accent-primary" />
-              {p.name} <span className="font-mono text-xs text-faint">{formatIdr(p.priceIdr)}</span>
-            </label>
+            <CheckButton key={p.id} name={`plan_${p.id}`} className="h-10 w-full justify-start">
+              {p.name} <span className="font-mono text-xs opacity-70">{formatIdr(p.priceIdr)}</span>
+            </CheckButton>
           ))}
         </div>
       </Card>
-
-      <Card>
+      <Card className="py-4">
         <p className="mono-label">Pratinjau harga</p>
         <div className="mt-3 flex flex-wrap items-end gap-4">
           <div className="min-w-48">
@@ -102,14 +116,16 @@ export function PromoForm({ plans }: { plans: PlanOption[] }) {
           </p>
         </div>
       </Card>
+      </div>
+      </div>
 
-      <Card className="max-w-sm space-y-4">
-        <FormResult error={state.error} ok={state.ok} />
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" disabled={pending} className="h-10 px-4 text-sm font-semibold">
           {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
           Buat promo
         </Button>
-      </Card>
+        <FormResult error={state.error} ok={state.ok} />
+      </div>
     </form>
   );
 }

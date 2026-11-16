@@ -99,14 +99,23 @@ export const docsSchema = z.object({
     .min(1, "Contoh model wajib diisi.")
     .max(80, "Contoh model maksimal 80 karakter.")
     .regex(/^[A-Za-z0-9][A-Za-z0-9._:/@-]*$/, "Contoh model hanya boleh huruf, angka, dan . _ : / @ -"),
+  // Link target of the "full prices" button on /models. Empty = the default below. https only: other schemes (javascript:, data:) never reach a href.
+  modelPricingUrl: optionalHttps("URL halaman harga model").default(""),
 });
+
+/** Where the /models page sends visitors for the full price list: the saved URL, else the public New API console's /pricing. */
+export function resolveModelPricingUrl(saved: string, newApiPublicUrl: string): string {
+  const url = saved.trim();
+  if (url && isHttpsUrl(url)) return url;
+  return `${newApiPublicUrl.replace(/\/+$/, "")}/pricing`;
+}
 
 export const siteSettingsSchema = brandSchema
   .extend(logoOptionsSchema.shape)
   .extend(contactSchema.shape)
   .extend(socialSchema.shape)
   .extend({ announcement: announcementBase })
-  .extend({ apiBaseUrl: z.string(), sampleModel: z.string() });
+  .extend({ apiBaseUrl: z.string(), sampleModel: z.string(), modelPricingUrl: z.string() });
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
 
@@ -134,7 +143,7 @@ export const SECTION_FIELDS: Record<SiteSection, readonly (keyof SiteSettings)[]
   contact: ["companyName", "companyAddress", "supportEmail", "whatsappUrl", "telegramUrl"],
   social: ["googleLoginEnabled", "githubLoginEnabled"],
   announcement: ["announcement"],
-  docs: ["apiBaseUrl", "sampleModel"],
+  docs: ["apiBaseUrl", "sampleModel", "modelPricingUrl"],
 };
 
 /** Legal pages: the three placeholders the settings can fill. Anything else stays `[ISI: ...]`. */

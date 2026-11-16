@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { HideItemForm } from "@/components/admin/activity-forms";
 import { adminDate } from "@/components/admin/common";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { DataTable, dataColumns, optionsFrom, type FilterDef } from "@/components/ui/data-table";
 
 export type ActivityTableRow = { orderId: string; label: string; plan: string; at: string };
 
@@ -27,5 +28,6 @@ const columns = col.columns([
 ]);
 
 export function ActivityTable({ rows }: { rows: ActivityTableRow[] }) {
-  return <DataTable data={rows} columns={columns} caption="Item aktif feed aktivitas" searchLabel="Cari item" getRowId={(i) => i.orderId} empty="Belum ada item." />;
+  const filters = useMemo<FilterDef[]>(() => [{ id: "plan", label: "Paket", type: "select", options: optionsFrom(rows.map((r) => r.plan)) }], [rows]);
+  return <DataTable data={rows} columns={columns} caption="Item aktif feed aktivitas" searchLabel="Cari item" filters={filters} getRowId={(i) => i.orderId} empty="Belum ada item." />;
 }

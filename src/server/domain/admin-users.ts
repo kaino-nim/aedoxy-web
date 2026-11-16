@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/server/db/client";
 import { account, orders, passkey, session, user } from "@/server/db/schema";
@@ -7,6 +7,7 @@ import { AdminError, writeAudit, type Actor } from "./audit";
 import { bannedNowSql, isBannedNow } from "./ban-state";
 import { BAN_REASON_MAX, banUserById, unbanUserById, type BanResult } from "./ban-user";
 import { getActivePlanForUser } from "./user-plan";
+import type { TableSort } from "@/lib/table-query";
 
 /** Admin reads and writes for /admin/users. Nothing here ever selects a password hash, token or 2FA secret. */
 
@@ -55,7 +56,11 @@ function userWhere(f: UserFilter, now = new Date()): SQL | undefined {
 export type ConsoleState = "linked" | "unlinked" | "disabled";
 const consoleState = (r: { newapiUserId: number | null; consoleDisabled: boolean }): ConsoleState => (r.newapiUserId == null ? "unlinked" : r.consoleDisabled ? "disabled" : "linked");
 
-export async function listAdminUsers(filter: UserFilter, page: number, pageSize: number) {
+/** Columns /api/admin/users may order by (table column id -> column). */
+const USER_SORT = { username: user.username, email: user.email, role: user.role, createdAt: user.createdAt } as const;
+export const USER_SORTABLE = Object.keys(USER_SORT);
+
+export async function listAdminUsers(filter: UserFilter, page: number, pageSize: number, sort?: TableSort | null) {
   const size = Math.min(Math.max(1, Math.trunc(pageSize) || 1), MAX_PAGE_SIZE);
   const pageNo = Math.max(1, Math.trunc(page) || 1);
   const where = userWhere(filter);
@@ -78,7 +83,7 @@ export async function listAdminUsers(filter: UserFilter, page: number, pageSize:
       })
       .from(user)
       .where(where)
-      .orderBy(desc(user.createdAt), desc(user.id))
+      .orderBy(...(sort && Object.hasOwn(USER_SORT, sort.id) ? [(sort.desc ? desc : asc)(USER_SORT[sort.id as keyof typeof USER_SORT]), desc(user.id)] : [desc(user.createdAt), desc(user.id)]))
       .limit(size)
       .offset((pageNo - 1) * size),
     db.select({ n: count() }).from(user).where(where),

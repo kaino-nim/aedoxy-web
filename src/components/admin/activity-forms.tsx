@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useActionState } from "react";
 import { hideActivityItemAction, saveActivitySettingsAction } from "@/app/(admin)/admin/activity/actions";
 import { Button } from "@/components/ui/button";
+import { CheckButton } from "@/components/ui/check-button";
 import { Switch } from "@/components/ui/switch";
 import type { AdminFormState } from "@/server/admin-action";
 import { Card } from "./common";
@@ -25,19 +26,13 @@ export function ActivitySettingsForm({ enabled, plans, allowedIds }: { enabled: 
         </div>
         <fieldset>
           <legend className="mono-label mb-2">Paket yang boleh tampil</legend>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="flex flex-wrap gap-2">
             {plans.map((p) => (
-              <li key={p.id} className="flex items-center gap-2 text-sm">
+              <li key={p.id}>
                 <input type="hidden" name="allPlanId" value={p.id} />
-                <input
-                  id={`plan-${p.id}`}
-                  type="checkbox"
-                  name="planId"
-                  value={p.id}
-                  defaultChecked={allowedIds === null || allowedIds.includes(p.id)}
-                  className="size-4 accent-[var(--primary)]"
-                />
-                <label htmlFor={`plan-${p.id}`}>{p.name}</label>
+                <CheckButton id={`plan-${p.id}`} name="planId" value={p.id} defaultChecked={allowedIds === null || allowedIds.includes(p.id)}>
+                  {p.name}
+                </CheckButton>
               </li>
             ))}
           </ul>

@@ -1,5 +1,6 @@
-import { and, count, desc, eq, gte, lt, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lt, type SQL } from "drizzle-orm";
 import { csvRow } from "@/lib/csv";
+import type { TableSort } from "@/lib/table-query";
 import { parseWib } from "@/lib/wib";
 import { db } from "@/server/db/client";
 import { creditPool, orders, poolLedger } from "@/server/db/schema";
@@ -103,7 +104,11 @@ const ledgerColumns = {
   tradeNo: orders.tradeNo,
 };
 
-export async function listLedger(filter: LedgerFilter, page: number, pageSize: number) {
+/** Columns /api/admin/ledger may order by (table column id -> column). */
+const LEDGER_SORT = { createdAt: poolLedger.createdAt, type: poolLedger.type, delta: poolLedger.delta } as const;
+export const LEDGER_SORTABLE = Object.keys(LEDGER_SORT);
+
+export async function listLedger(filter: LedgerFilter, page: number, pageSize: number, sort?: TableSort | null) {
   const where = ledgerWhere(filter);
   const [rows, [{ total }]] = await Promise.all([
     db
@@ -111,7 +116,7 @@ export async function listLedger(filter: LedgerFilter, page: number, pageSize: n
       .from(poolLedger)
       .leftJoin(orders, eq(orders.id, poolLedger.orderId))
       .where(where)
-      .orderBy(desc(poolLedger.id))
+      .orderBy(...(sort && Object.hasOwn(LEDGER_SORT, sort.id) ? [(sort.desc ? desc : asc)(LEDGER_SORT[sort.id as keyof typeof LEDGER_SORT]), desc(poolLedger.id)] : [desc(poolLedger.id)]))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
     db.select({ total: count() }).from(poolLedger).where(where),

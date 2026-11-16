@@ -4,7 +4,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { pickActiveSection, SECTION_IDS, TOOLS, type SectionId } from "@/lib/docs/sections";
 import { cn } from "@/lib/utils";
 import { useDocs } from "./docs-provider";
-import { LanguageSwitcher } from "./language-switcher";
 
 /** A section counts as current once its top edge is above this many px (clears the sticky header and pill bar). */
 const SPY_OFFSET = 150;
@@ -63,9 +62,6 @@ export function DocsLayout({ children }: { children: ReactNode }) {
             {label}
           </a>
         ))}
-        <div className="ml-auto shrink-0 pl-2">
-          <LanguageSwitcher />
-        </div>
       </nav>
 
       <div className="grid gap-x-14 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -99,7 +95,6 @@ export function DocsLayout({ children }: { children: ReactNode }) {
                 ))}
               </ul>
             </div>
-            <LanguageSwitcher />
           </div>
         </aside>
         <div className="min-w-0 py-10">{children}</div>

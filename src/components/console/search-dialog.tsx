@@ -28,7 +28,8 @@ export function SearchDialog({ groups }: { groups: readonly NavGroup[] }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+      // Autofill and some IMEs dispatch keydown events without `key`.
+      if (e.key?.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((v) => !v);
       }

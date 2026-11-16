@@ -4,12 +4,16 @@ import { Loader2, TriangleAlert } from "lucide-react";
 import { useActionState, useState } from "react";
 import { savePlanAction } from "@/app/(admin)/admin/plans/actions";
 import { Button } from "@/components/ui/button";
+import { CheckButton } from "@/components/ui/check-button";
 import { Input } from "@/components/ui/input";
 import type { AdminFormState } from "@/server/admin-action";
 import { Card, Field, NativeSelect } from "./common";
 import { FormResult } from "./totp-field";
 
 const input = "h-9 bg-background";
+/** Two columns from sm; the group title spans the whole row. */
+const GRID = "gap-x-4 gap-y-3 sm:grid-cols-2 grid";
+const GROUP_TITLE = "col-span-full text-sm font-medium text-heading";
 
 const GROUP_HINT =
   "Grup di console New API yang dipasang ke akun pembeli selama paket aktif, lalu dikembalikan saat paket berakhir. Mengatur rasio harga dan model yang boleh dipakai. Grup dibuat dan diatur di console. Kosong = grup akun tidak diubah.";
@@ -63,82 +67,92 @@ export function PlanForm({ planId, values, enabled, sold, groups }: { planId?: n
   const v = (k: string) => values[k] ?? "";
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} className="w-full space-y-4">
       {planId !== undefined && <input type="hidden" name="planId" value={planId} />}
 
-      <Card className="grid gap-4 sm:grid-cols-2">
-        <Field label="Nama" htmlFor="name" error={fe.name?.[0]}>
-          <Input id="name" name="name" defaultValue={v("name")} required maxLength={80} className={input} />
-        </Field>
-        <Field label="Subjudul" htmlFor="subtitle" error={fe.subtitle?.[0]}>
-          <Input id="subtitle" name="subtitle" defaultValue={v("subtitle")} maxLength={160} className={input} />
-        </Field>
-        <Field label="Badge" htmlFor="badge" hint="Contoh: Terlaris, Promo." error={fe.badge?.[0]}>
-          <Input id="badge" name="badge" defaultValue={v("badge")} maxLength={24} className={input} />
-        </Field>
-        <Field label="Grup setelah beli" htmlFor="upgradeGroup" hint={GROUP_HINT} error={fe.upgradeGroup?.[0]}>
-          <GroupSelect groups={groups} current={v("upgradeGroup")} />
-        </Field>
-      </Card>
+      {/* lg+: identity and prices on the left; the sales window card stretches down the whole right column. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-stretch">
+        <div className="space-y-4">
+          <Card className={`py-4 ${GRID}`}>
+            <h2 className={GROUP_TITLE}>Identitas</h2>
+            <Field label="Nama" htmlFor="name" error={fe.name?.[0]}>
+              <Input id="name" name="name" defaultValue={v("name")} required maxLength={80} className={input} />
+            </Field>
+            <Field label="Subjudul" htmlFor="subtitle" error={fe.subtitle?.[0]}>
+              <Input id="subtitle" name="subtitle" defaultValue={v("subtitle")} maxLength={160} className={input} />
+            </Field>
+            <Field label="Badge" htmlFor="badge" hint="Contoh: Terlaris, Promo." error={fe.badge?.[0]}>
+              <Input id="badge" name="badge" defaultValue={v("badge")} maxLength={24} className={input} />
+            </Field>
+            <Field label="Urutan" htmlFor="sortOrder" hint="Kosong = paling akhir. Angka kecil tampil lebih dulu." error={fe.sortOrder?.[0]}>
+              <Input id="sortOrder" name="sortOrder" inputMode="numeric" defaultValue={v("sortOrder")} className={input} />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Grup setelah beli" htmlFor="upgradeGroup" hint={GROUP_HINT} error={fe.upgradeGroup?.[0]}>
+                <GroupSelect groups={groups} current={v("upgradeGroup")} />
+              </Field>
+            </div>
+          </Card>
 
-      <Card className="grid gap-4 sm:grid-cols-2">
-        <Field label="Periode" htmlFor="period" error={fe.period?.[0]}>
-          <NativeSelect id="period" name="period" value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="weekly">Mingguan (7 hari)</option>
-            <option value="monthly">Bulanan (30 hari)</option>
-            <option value="custom">Kustom</option>
-          </NativeSelect>
-        </Field>
-        {period === "custom" ? (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Durasi" htmlFor="customValue" error={fe.customValue?.[0]}>
-              <Input id="customValue" name="customValue" inputMode="numeric" defaultValue={v("customValue")} className={input} />
+          <Card className={`py-4 ${GRID}`}>
+            <h2 className={GROUP_TITLE}>Harga &amp; kredit</h2>
+            <Field label="Harga flat (Rp)" htmlFor="priceIdr" hint="Bilangan bulat, minimal Rp10.000." error={fe.priceIdr?.[0]}>
+              <Input id="priceIdr" name="priceIdr" inputMode="numeric" defaultValue={v("priceIdr")} required className={input} />
             </Field>
-            <Field label="Satuan" htmlFor="customUnit">
-              <NativeSelect id="customUnit" name="customUnit" defaultValue={v("customUnit") || "day"}>
-                <option value="day">Hari</option>
-                <option value="hour">Jam</option>
-              </NativeSelect>
+            <Field label="Harga coret (Rp)" htmlFor="compareAtPriceIdr" hint="Opsional. Harus lebih besar dari harga flat." error={fe.compareAtPriceIdr?.[0]}>
+              <Input id="compareAtPriceIdr" name="compareAtPriceIdr" inputMode="numeric" defaultValue={v("compareAtPriceIdr")} className={input} />
             </Field>
+            <div className="sm:col-span-2">
+              <Field label="Kredit (USD)" htmlFor="creditUsd" error={fe.creditUsd?.[0]}>
+                <Input id="creditUsd" name="creditUsd" inputMode="decimal" defaultValue={v("creditUsd")} required className={input} />
+              </Field>
+            </div>
+          </Card>
+        </div>
+
+        <Card className="flex flex-col gap-3 py-4">
+          <h2 className={GROUP_TITLE}>Masa berlaku &amp; penjualan</h2>
+          <Field label="Periode" htmlFor="period" error={fe.period?.[0]}>
+            <NativeSelect id="period" name="period" value={period} onChange={(e) => setPeriod(e.target.value)}>
+              <option value="weekly">Mingguan (7 hari)</option>
+              <option value="monthly">Bulanan (30 hari)</option>
+              <option value="custom">Kustom</option>
+            </NativeSelect>
+          </Field>
+          {period === "custom" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Durasi" htmlFor="customValue" error={fe.customValue?.[0]}>
+                <Input id="customValue" name="customValue" inputMode="numeric" defaultValue={v("customValue")} className={input} />
+              </Field>
+              <Field label="Satuan" htmlFor="customUnit">
+                <NativeSelect id="customUnit" name="customUnit" defaultValue={v("customUnit") || "day"}>
+                  <option value="day">Hari</option>
+                  <option value="hour">Jam</option>
+                </NativeSelect>
+              </Field>
+            </div>
+          )}
+          <Field label="Mulai dijual (WIB)" htmlFor="saleStartsAt" error={fe.saleStartsAt?.[0]}>
+            <Input id="saleStartsAt" name="saleStartsAt" type="datetime-local" defaultValue={v("saleStartsAt")} className={input} />
+          </Field>
+          <Field label="Selesai dijual (WIB)" htmlFor="saleEndsAt" error={fe.saleEndsAt?.[0]}>
+            <Input id="saleEndsAt" name="saleEndsAt" type="datetime-local" defaultValue={v("saleEndsAt")} className={input} />
+          </Field>
+          <Field label="Stok paket" htmlFor="stockLimit" hint="Kosong = tanpa batas." error={fe.stockLimit?.[0]}>
+            <Input id="stockLimit" name="stockLimit" inputMode="numeric" defaultValue={v("stockLimit")} className={input} />
+          </Field>
+          <Field label="Batas beli per user" htmlFor="maxPurchasePerUser" hint="0 = tanpa batas." error={fe.maxPurchasePerUser?.[0]}>
+            <Input id="maxPurchasePerUser" name="maxPurchasePerUser" inputMode="numeric" defaultValue={v("maxPurchasePerUser") || "0"} className={input} />
+          </Field>
+          <div className="mt-auto pt-2">
+            <CheckButton name="enabled" defaultChecked={enabled}>
+              Aktif (bisa dibeli setelah tersinkron)
+            </CheckButton>
           </div>
-        ) : (
-          <div />
-        )}
-        <Field label="Kredit (USD)" htmlFor="creditUsd" error={fe.creditUsd?.[0]}>
-          <Input id="creditUsd" name="creditUsd" inputMode="decimal" defaultValue={v("creditUsd")} required className={input} />
-        </Field>
-        <Field label="Batas beli per user" htmlFor="maxPurchasePerUser" hint="0 = tanpa batas." error={fe.maxPurchasePerUser?.[0]}>
-          <Input id="maxPurchasePerUser" name="maxPurchasePerUser" inputMode="numeric" defaultValue={v("maxPurchasePerUser") || "0"} className={input} />
-        </Field>
-      </Card>
-
-      <Card className="grid gap-4 sm:grid-cols-2">
-        <Field label="Harga flat (Rp)" htmlFor="priceIdr" hint="Bilangan bulat, minimal Rp10.000." error={fe.priceIdr?.[0]}>
-          <Input id="priceIdr" name="priceIdr" inputMode="numeric" defaultValue={v("priceIdr")} required className={input} />
-        </Field>
-        <Field label="Harga coret (Rp)" htmlFor="compareAtPriceIdr" hint="Opsional. Harus lebih besar dari harga flat." error={fe.compareAtPriceIdr?.[0]}>
-          <Input id="compareAtPriceIdr" name="compareAtPriceIdr" inputMode="numeric" defaultValue={v("compareAtPriceIdr")} className={input} />
-        </Field>
-        <Field label="Stok paket" htmlFor="stockLimit" hint="Kosong = tanpa batas." error={fe.stockLimit?.[0]}>
-          <Input id="stockLimit" name="stockLimit" inputMode="numeric" defaultValue={v("stockLimit")} className={input} />
-        </Field>
-        <Field label="Urutan" htmlFor="sortOrder" hint="Kosong = paling akhir. Angka kecil tampil lebih dulu." error={fe.sortOrder?.[0]}>
-          <Input id="sortOrder" name="sortOrder" inputMode="numeric" defaultValue={v("sortOrder")} className={input} />
-        </Field>
-        <Field label="Mulai dijual (WIB)" htmlFor="saleStartsAt" error={fe.saleStartsAt?.[0]}>
-          <Input id="saleStartsAt" name="saleStartsAt" type="datetime-local" defaultValue={v("saleStartsAt")} className={input} />
-        </Field>
-        <Field label="Selesai dijual (WIB)" htmlFor="saleEndsAt" error={fe.saleEndsAt?.[0]}>
-          <Input id="saleEndsAt" name="saleEndsAt" type="datetime-local" defaultValue={v("saleEndsAt")} className={input} />
-        </Field>
-        <label className="flex items-center gap-2.5 text-sm text-heading sm:col-span-2">
-          <input type="checkbox" name="enabled" defaultChecked={enabled} className="size-4 accent-primary" />
-          Aktif (bisa dibeli setelah tersinkron)
-        </label>
-      </Card>
-
+        </Card>
+      </div>
       {(state.confirm || sold) && (
-        <Card className="border-warn/40">
+        <Card className="border-warn/40 py-4">
           <p className="flex items-start gap-2 text-sm text-fg-soft">
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
             <span>
@@ -146,26 +160,24 @@ export function PlanForm({ planId, values, enabled, sold, groups }: { planId?: n
             </span>
           </p>
           <label className="mt-3 flex items-start gap-2.5 text-sm text-heading">
-            <input type="checkbox" name="confirmCreditChange" defaultChecked={Boolean(state.confirm)} className="mt-0.5 size-4 accent-primary" />
+            <input type="checkbox" name="confirmCreditChange" defaultChecked={Boolean(state.confirm)} className="mt-0.5 size-4 check-primary" />
             Saya mengerti, ubah kredit paket ini
           </label>
         </Card>
       )}
 
-      <Card className="max-w-sm space-y-4">
-        <FormResult error={state.error} ok={state.ok} />
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" name="intent" value="save" disabled={pending} className="h-10 px-4 text-sm font-semibold">
-            {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-            {planId === undefined ? "Buat paket" : "Simpan perubahan"}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" name="intent" value="save" disabled={pending} className="h-10 px-4 text-sm font-semibold">
+          {pending && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {planId === undefined ? "Buat paket" : "Simpan perubahan"}
+        </Button>
+        {planId !== undefined && (state.confirm || sold) && (
+          <Button type="submit" name="intent" value="save_as_new" variant="outline" disabled={pending} className="h-10 px-4 text-sm font-semibold">
+            Simpan sebagai paket baru
           </Button>
-          {planId !== undefined && (state.confirm || sold) && (
-            <Button type="submit" name="intent" value="save_as_new" variant="outline" disabled={pending} className="h-10 px-4 text-sm font-semibold">
-              Simpan sebagai paket baru
-            </Button>
-          )}
-        </div>
-      </Card>
+        )}
+        <FormResult error={state.error} ok={state.ok} />
+      </div>
     </form>
   );
 }

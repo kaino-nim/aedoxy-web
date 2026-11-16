@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useMemo, useState } from "react";
 import { deleteModelMetaAction } from "@/app/(admin)/admin/models/actions";
@@ -27,7 +26,7 @@ export type ModelTableRow = {
 
 const col = dataColumns<ModelTableRow>();
 
-const buildColumns = (onDelete: (modelName: string) => void) => col.columns([
+const buildColumns = (onDelete: (modelName: string) => void, onEdit: (row: ModelTableRow) => void) => col.columns([
   col.accessor("modelName", { header: "Model", cell: (c) => <span title={c.getValue()} className="inline-block max-w-64 truncate align-bottom font-mono text-xs">{c.getValue()}</span> }),
   col.accessor("provider", { header: "Provider", cell: (c) => <span title={c.getValue()} className="inline-block max-w-40 truncate align-bottom">{c.getValue()}</span> }),
   col.accessor((m) => m.contextIn ?? 0, {
@@ -71,9 +70,9 @@ const buildColumns = (onDelete: (modelName: string) => void) => col.columns([
       const name = c.row.original.modelName;
       return (
         <span className="inline-flex items-center gap-4">
-          <Link href={`/admin/models?edit=${encodeURIComponent(name)}`} className="text-sm text-primary-ink underline-offset-4 hover:underline">
+          <button type="button" onClick={() => onEdit(c.row.original)} aria-label={`Ubah metadata ${name}`} className="text-sm text-primary-ink underline-offset-4 hover:underline">
             Ubah
-          </Link>
+          </button>
           <button type="button" onClick={() => onDelete(name)} aria-label={`Hapus metadata ${name}`} className="text-sm text-danger underline-offset-4 hover:underline">
             Hapus
           </button>
@@ -83,12 +82,12 @@ const buildColumns = (onDelete: (modelName: string) => void) => col.columns([
   }),
 ]);
 
-export function ModelsTable({ rows }: { rows: ModelTableRow[] }) {
+export function ModelsTable({ rows, onEdit }: { rows: ModelTableRow[]; onEdit: (row: ModelTableRow) => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [target, setTarget] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
-  const columns = useMemo(() => buildColumns((name) => { setDone(null); setTarget(name); }), []);
+  const columns = useMemo(() => buildColumns((name) => { setDone(null); setTarget(name); }, onEdit), [onEdit]);
 
   // The table row disappears after a delete, so the dialog and its result live here, outside the rows.
   const onDeleted = (name: string, message: string) => {

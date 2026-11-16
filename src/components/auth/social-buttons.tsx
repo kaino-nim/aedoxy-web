@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { SocialIcon } from "@/components/brand/social-icons";
 import { Button } from "@/components/ui/button";
 import { signInErrorMessage } from "@/lib/auth-messages";
 import { authClient } from "@/lib/auth-client";
@@ -43,7 +44,7 @@ export function SocialButtons({ providers, verb, onError }: { providers: SocialP
       </div>
       {providers.map((p) => (
         <Button key={p} type="button" variant="outline" onClick={() => start(p)} disabled={busy !== null} className="mt-2 h-11 w-full bg-surface text-sm font-semibold">
-          {busy === p && <Loader2 className="size-4 animate-spin" aria-hidden />}
+          {busy === p ? <Loader2 data-icon="inline-start" className="size-4 animate-spin" aria-hidden /> : <SocialIcon provider={p} data-icon="inline-start" className="size-4" />}
           {verb} dengan {SOCIAL_LABEL[p]}
         </Button>
       ))}

@@ -2,23 +2,45 @@ import Link from "next/link";
 import { site } from "@/config/site";
 import { getCopyrightYear, getSiteSettings } from "@/server/site";
 
-/** Giant faint wordmark. textLength pins it to the full container width at any viewport. */
+const WORDMARK_TEXT = {
+  x: 0,
+  y: 200,
+  fontSize: 290,
+  fontWeight: 500,
+  letterSpacing: -12,
+  textLength: 1000,
+  lengthAdjust: "spacing",
+} as const;
+const WORDMARK_FADE = "linear-gradient(to bottom, #000 45%, rgba(0, 0, 0, 0.12) 100%)";
+const WORDMARK_FONT = { fontFamily: "var(--font-geist-sans), system-ui, sans-serif" };
+
+/**
+ * Giant decorative wordmark. textLength pins it to the full container width at any viewport.
+ * Pale neutral, faded out toward the bottom edge; the orange layer fades in on hover (pointer devices only,
+ * Tailwind wraps `hover:` variants in `@media (hover: hover)`), so touch screens keep the neutral mark.
+ */
 function Wordmark({ name }: { name: string }) {
   return (
-    <svg viewBox="0 0 1000 250" aria-hidden className="block w-full select-none">
-      <text
-        x="0"
-        y="200"
-        fontSize="290"
-        fontWeight="500"
-        letterSpacing="-12"
-        textLength="1000"
-        lengthAdjust="spacing"
-        style={{ fill: "var(--wordmark)", fontFamily: "var(--font-geist-sans), system-ui, sans-serif" }}
-      >
-        {name}
-      </text>
-    </svg>
+    <div aria-hidden className="group select-none" style={{ maskImage: WORDMARK_FADE, WebkitMaskImage: WORDMARK_FADE }}>
+      <svg viewBox="0 0 1000 275" className="block w-full">
+        <defs>
+          <linearGradient id="wordmark-hover" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" style={{ stopColor: "var(--primary)" }} />
+            <stop offset="1" style={{ stopColor: "var(--accent)" }} />
+          </linearGradient>
+        </defs>
+        <text {...WORDMARK_TEXT} style={{ ...WORDMARK_FONT, fill: "var(--wordmark)" }}>
+          {name}
+        </text>
+        <text
+          {...WORDMARK_TEXT}
+          className="opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 motion-reduce:transition-none"
+          style={{ ...WORDMARK_FONT, fill: "url(#wordmark-hover)" }}
+        >
+          {name}
+        </text>
+      </svg>
+    </div>
   );
 }
 
@@ -31,9 +53,11 @@ export async function SiteFooter() {
 
   return (
     <footer className="section-rule mt-auto overflow-hidden">
-      <div className="container-x pt-16 pb-8 md:pt-24">
-        <Wordmark name={s.brandName} />
-        <div className="mt-6 flex flex-col gap-4 text-[13px] text-fg-muted md:flex-row md:items-center md:justify-between">
+      <div className="container-x pt-10 pb-8 md:pt-14">
+        <div>
+          <Wordmark name={s.brandName} />
+        </div>
+        <div className="mt-2 flex flex-col gap-4 text-[13px] text-fg-muted md:flex-row md:items-center md:justify-between">
           <p>
             © {year} {s.companyName || s.brandName}. Hak cipta dilindungi. Console API ditenagai{" "}
             <a

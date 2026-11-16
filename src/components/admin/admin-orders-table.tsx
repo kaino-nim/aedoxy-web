@@ -4,9 +4,10 @@ import Link from "next/link";
 import { adminDate } from "@/components/admin/common";
 import { OrderBadge } from "@/components/panel/order-badge";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { dataColumns, type FilterDef } from "@/components/ui/data-table";
+import { ServerDataTable } from "@/components/ui/server-data-table";
 import { formatIdr } from "@/lib/format";
-import type { FulfillmentStatus, GrantPhase, OrderStatus } from "@/lib/order-status";
+import { FULFILLMENT_STATUS_VALUES, ORDER_STATUS_VALUES, type FulfillmentStatus, type GrantPhase, type OrderStatus } from "@/lib/order-status";
 
 export type AdminOrderRow = {
   id: string;
@@ -61,7 +62,26 @@ const columns = col.columns([
   }),
 ]);
 
-/** The server already filtered and paged these rows (URL filters); headers sort the current page only. */
-export function AdminOrdersTable({ rows }: { rows: AdminOrderRow[] }) {
-  return <DataTable manual data={rows} columns={columns} caption="Order pembeli" getRowId={(o) => o.id} empty="Tidak ada order." />;
+const FILTERS: FilterDef[] = [
+  { id: "status", label: "Status order", type: "select", options: ORDER_STATUS_VALUES.map((s) => ({ value: s, label: s })) },
+  { id: "fulfillment", label: "Fulfillment", type: "select", options: FULFILLMENT_STATUS_VALUES.map((s) => ({ value: s, label: s })) },
+];
+
+/** Searched, filtered, sorted and paged by GET /api/admin/orders (TanStack Query); `initial` is the first page from the server. */
+export function AdminOrdersTable({ initial, initialSearch, initialFilters }: { initial: { rows: AdminOrderRow[]; total: number }; initialSearch?: string; initialFilters?: Record<string, string> }) {
+  return (
+    <ServerDataTable
+      endpoint="/api/admin/orders"
+      columns={columns}
+      caption="Order pembeli"
+      getRowId={(o) => o.id}
+      sortable={["createdAt", "tradeNo", "email", "amountIdr", "status"]}
+      filters={FILTERS}
+      searchLabel="Cari trade_no atau email"
+      initial={initial}
+      initialSearch={initialSearch}
+      initialFilters={initialFilters}
+      empty="Tidak ada order."
+    />
+  );
 }

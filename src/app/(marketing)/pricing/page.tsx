@@ -1,7 +1,10 @@
 import { Info } from "lucide-react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PageFallback } from "@/components/marketing/page-fallback";
 import { ActivityTicker } from "@/components/marketing/activity-ticker";
 import { FaqSection } from "@/components/marketing/faq-section";
+import { RiseScope } from "@/components/marketing/rise-scope";
 import { PlanTabs } from "@/components/marketing/plan-tabs";
 import { FxFootnote } from "@/components/usd-idr";
 import { getActivity, getFxRate, getPlans } from "@/server/catalog";
@@ -11,11 +14,19 @@ export const metadata: Metadata = {
   description: "Paket mingguan dan bulanan berharga flat dalam rupiah. Kredit hangus di akhir masa aktif.",
 };
 
-export default async function PricingPage() {
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<PageFallback />}>
+      <Pricing />
+    </Suspense>
+  );
+}
+
+async function Pricing() {
   const [plans, fx, activity] = await Promise.all([getPlans(), getFxRate(), getActivity()]);
 
   return (
-    <>
+    <RiseScope>
       <section>
         <div className="container-x py-14 sm:py-20">
           <p className="eyebrow">Pricing</p>
@@ -39,6 +50,6 @@ export default async function PricingPage() {
         <FxFootnote fx={fx} className="mt-4" />
       </section>
       <FaqSection />
-    </>
+    </RiseScope>
   );
 }

@@ -53,7 +53,7 @@ export function IntegrationsSection({ apiBaseUrl, modelId, brandName }: { apiBas
   return (
     <section className="section-rule">
       <div className="container-x grid gap-12 py-20 sm:py-28 lg:grid-cols-[1fr_1.2fr] lg:items-center lg:gap-16">
-        <div className="reveal">
+        <div data-rise>
           <p className="eyebrow">Integrasi</p>
           <h2 className="mt-4 text-[34px] leading-[1.1] font-medium tracking-[-0.035em] text-heading sm:text-[44px]">
             Tetap pakai agen Anda.
@@ -95,7 +95,7 @@ export function IntegrationsSection({ apiBaseUrl, modelId, brandName }: { apiBas
           </ToggleGroup>
         </div>
 
-        <div className="reveal overflow-hidden rounded-card-lg border border-line bg-surface shadow-card-hover">
+        <div data-rise className="overflow-hidden rounded-card-lg border border-line bg-surface shadow-card-hover">
           <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
             <span aria-hidden className="size-3 rounded-full bg-[#ff5f57]" />
             <span aria-hidden className="size-3 rounded-full bg-[#febc2e]" />

@@ -2,19 +2,20 @@
 
 import { Brain, Check, Copy, FileText, ImageIcon, Search, Type, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DitherPanel } from "@/components/brand/dither-panel";
 import { ProviderLogo } from "@/components/brand/provider-logo";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { FxFootnote, UsdIdr } from "@/components/usd-idr";
-import { formatTokens, formatUsd } from "@/lib/format";
-import { filterModels, outputPerPlan, savingPercent, sortModels, type ModelSort } from "@/lib/models";
+import { FxFootnote } from "@/components/usd-idr";
+import { formatMTokens, formatTokens } from "@/lib/format";
+import { formatPrice, type Currency } from "@/lib/fx";
+import { filterModels, savingPercent, sortModels, tokensPerUsd, type ModelSort } from "@/lib/models";
 import { cn } from "@/lib/utils";
-import type { Capability, FxRate, Model, ModelStatus, Plan, Provider } from "@/server/catalog/types";
+import type { Capability, FxRate, Model, ModelStatus, Provider } from "@/server/catalog/types";
 
 const CAPABILITY: Record<Capability, { label: string; icon: LucideIcon }> = {
   text: { label: "Teks", icon: Type },
@@ -36,8 +37,6 @@ const SORTS: { value: ModelSort; label: string }[] = [
   { value: "context", label: "Context terbesar" },
 ];
 
-type Currency = "usd" | "idr";
-
 function isTyping(target: EventTarget | null) {
   return (
     target instanceof HTMLElement &&
@@ -50,26 +49,30 @@ function FilterSelect<T extends string>({
   value,
   onChange,
   options,
+  className,
 }: {
   label: string;
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
+  className?: string;
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as T)}>
       <SelectTrigger
         aria-label={label}
-        className="h-11 w-full rounded-xl border-line-strong bg-surface py-0 pr-3 pl-4 text-sm text-fg-soft hover:bg-surface dark:bg-surface dark:hover:bg-surface"
+        className={cn("h-11 w-full rounded-lg data-[size=default]:h-11 border-line-strong bg-surface py-0 pr-3 pl-3.5 text-sm text-fg-soft hover:bg-surface dark:bg-surface dark:hover:bg-surface", className)}
       >
         <SelectValue />
       </SelectTrigger>
       <SelectContent position="popper" className="rounded-xl bg-surface shadow-card-hover">
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value} className="text-fg-soft">
-            {o.label}
-          </SelectItem>
-        ))}
+        <SelectGroup>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value} className="text-fg-soft">
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
@@ -79,13 +82,10 @@ export function ModelsCatalog({
   providers,
   models,
   fx,
-  plan,
 }: {
   providers: Provider[];
   models: Model[];
   fx: FxRate | null;
-  /** Plan used for the "≈ output per plan" column; the column is left out without one. */
-  plan: Pick<Plan, "name" | "creditUsd"> | null;
 }) {
   const [query, setQuery] = useState("");
   const [providerId, setProviderId] = useState("all");
@@ -125,38 +125,40 @@ export function ModelsCatalog({
     }
   }
 
+  const perProvider = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const m of models) counts.set(m.providerId, (counts.get(m.providerId) ?? 0) + 1);
+    return counts;
+  }, [models]);
+
   const groups = useMemo(() => {
     const visible = sortModels(filterModels(models, { query, providerId, capability, status }), sort);
     return providers
       .map((provider) => ({ provider, models: visible.filter((m) => m.providerId === provider.id) }))
       .filter((g) => g.models.length > 0);
   }, [models, providers, query, providerId, capability, status, sort]);
+  const shown = groups.reduce((n, g) => n + g.models.length, 0);
 
-  // Rupiah appears only here, on provider list prices (F04/F08); credit cost stays in $.
-  const officialPair = (inUsd: number, outUsd: number) =>
-    showIdr ? (
-      <>
-        <UsdIdr usd={inUsd} fx={fx} /> / <UsdIdr usd={outUsd} fx={fx} />
-      </>
-    ) : (
-      `${formatUsd(inUsd)} / ${formatUsd(outUsd)}`
-    );
+  // Every price column (provider list price and credit cost) goes through the same USD/IDR helper.
+  const price = (usd: number) => formatPrice(usd, currency, fx);
 
   // Cell bodies shared by the table (>= xl) and the cards (below xl), so both show the same figures.
   const nameCell = (m: Model) => (
-    <div className="flex items-center gap-1.5">
-      <span className="font-mono text-sm text-heading">{m.id}</span>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <span translate="no" className="min-w-0 font-mono text-sm [overflow-wrap:anywhere] text-heading">
+        {m.id}
+      </span>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
+            size="icon-sm"
             onClick={() => copy(m.id)}
             aria-label={`Salin nama model ${m.id}`}
-            className="rounded text-faint hover:bg-transparent hover:text-heading dark:hover:bg-transparent"
+            className="text-faint hover:text-heading"
           >
-            {copiedId === m.id ? <Check className="size-3.5 text-primary-ink" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+            {copiedId === m.id ? <Check className="text-primary-ink" aria-hidden /> : <Copy aria-hidden />}
           </Button>
         </TooltipTrigger>
         <TooltipContent>{copiedId === m.id ? "Disalin" : "Salin nama model"}</TooltipContent>
@@ -186,7 +188,7 @@ export function ModelsCatalog({
     </ul>
   );
   const statusCell = (m: Model) => (
-    <span className="inline-flex items-center gap-2 text-sm text-fg-soft">
+    <span className="inline-flex items-center gap-2 text-[13px] text-fg-soft">
       <span className={cn("size-2 rounded-full", STATUS[m.status].dot)} aria-hidden />
       {STATUS[m.status].label}
     </span>
@@ -197,9 +199,9 @@ export function ModelsCatalog({
       <>
         <s className="text-faint">
           <span className="sr-only">Harga resmi </span>
-          {officialPair(m.officialInputUsdPerM, m.officialOutputUsdPerM)}
+          {price(m.officialInputUsdPerM)} / {price(m.officialOutputUsdPerM)}
         </s>
-        {saving !== null && <span className="block text-primary-ink">hemat {saving}%</span>}
+        {saving !== null && <span className="block text-primary-ink" title="Dihitung dengan asumsi 3 token input untuk tiap 1 token output, dolar dengan dolar; harga paket tidak ikut dihitung.">hemat {saving}%</span>}
       </>
     ) : (
       <span className="text-faint">–</span>
@@ -208,22 +210,31 @@ export function ModelsCatalog({
   const creditCell = (m: Model) =>
     m.creditInputUsdPerM !== null && m.creditOutputUsdPerM !== null ? (
       <>
-        <span className="text-sm font-semibold text-heading">{formatUsd(m.creditInputUsdPerM)}</span> <span className="text-faint">in</span>
+        <span className="text-sm font-semibold text-heading">{price(m.creditInputUsdPerM)}</span> <span className="text-faint">in</span>
         <span className="block text-fg-soft">
-          {formatUsd(m.creditOutputUsdPerM)} <span className="text-faint">out</span>
+          {price(m.creditOutputUsdPerM)} <span className="text-faint">out</span>
         </span>
         {m.creditDynamic && <span className="block text-[11px] text-fg-muted">harga saat ini</span>}
       </>
     ) : m.creditPerRequestUsd !== null ? (
       <>
-        <span className="text-sm font-semibold text-heading">{formatUsd(m.creditPerRequestUsd)}</span> <span className="text-faint">/ request</span>
+        <span className="text-sm font-semibold text-heading">{price(m.creditPerRequestUsd)}</span> <span className="text-faint">/ request</span>
       </>
     ) : (
       <span className="text-faint">–</span>
     );
-  const perPlanCell = (m: Model) => {
-    const perPlan = plan ? outputPerPlan(m, plan.creditUsd) : null;
-    return perPlan ? `${formatTokens(perPlan.count)} ${perPlan.unit}` : <span className="text-faint">–</span>;
+  const perUsdCell = (m: Model) => {
+    const t = tokensPerUsd(m);
+    if (t === null) return <span className="text-faint">-</span>;
+    if (t.unit === "request") return `${new Intl.NumberFormat("id-ID").format(t.count)} request`;
+    return (
+      <>
+        <span className="text-fg-soft">{formatMTokens(t.input)}</span> <span className="text-faint">in</span>
+        <span className="block text-fg-soft">
+          {formatMTokens(t.output)} <span className="text-faint">out</span>
+        </span>
+      </>
+    );
   };
 
   function reset() {
@@ -233,201 +244,219 @@ export function ModelsCatalog({
     setStatus("all");
   }
 
+  const head = "h-auto px-4 py-3 text-xs font-normal whitespace-normal text-faint";
+
   return (
-    <div>
-      <div role="search" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))_auto]">
-        <label className="relative block sm:col-span-2 lg:col-span-1">
-          <span className="sr-only">Cari model</span>
-          <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-fg-muted" aria-hidden />
-          <Input
-            ref={searchRef}
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari model…"
-            className="h-11 rounded-xl border-line-strong bg-surface py-0 pr-12 pl-11 text-sm text-fg placeholder:text-faint dark:bg-surface"
-          />
-          <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-line-strong px-1.5 font-mono text-[11px] text-faint">
-            /
-          </kbd>
-        </label>
+    <div className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-28 lg:max-h-[calc(100svh-8rem)] lg:self-start lg:overflow-y-auto" aria-label="Filter katalog">
+        <div role="search">
+          <label className="relative block">
+            <span className="sr-only">Cari model</span>
+            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-fg-muted" aria-hidden />
+            <Input
+              ref={searchRef}
+              type="search"
+              name="q"
+              autoComplete="off"
+              spellCheck={false}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari model…"
+              className="h-11 rounded-lg border-line-strong bg-surface py-0 pr-10 pl-10 text-sm text-fg placeholder:text-faint dark:bg-surface"
+            />
+            <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-line-strong px-1.5 font-mono text-[11px] text-faint">
+              /
+            </kbd>
+          </label>
+        </div>
+
         <FilterSelect
           label="Provider"
           value={providerId}
           onChange={setProviderId}
           options={[{ value: "all", label: "Semua provider" }, ...providers.map((p) => ({ value: p.id, label: p.name }))]}
+          className="lg:hidden"
         />
-        <FilterSelect
-          label="Kemampuan"
-          value={capability}
-          onChange={setCapability}
-          options={[
-            { value: "all", label: "Semua kemampuan" },
-            ...(Object.keys(CAPABILITY) as Capability[]).map((c) => ({ value: c, label: CAPABILITY[c].label })),
-          ]}
-        />
-        <FilterSelect
-          label="Status"
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "all", label: "Semua status" },
-            ...(Object.keys(STATUS) as ModelStatus[]).map((s) => ({ value: s, label: STATUS[s].label })),
-          ]}
-        />
-        <FilterSelect label="Urutkan" value={sort} onChange={setSort} options={SORTS} />
-        {idrAvailable && (
-          <ToggleGroup
-            type="single"
-            spacing={1}
-            value={currency}
-            onValueChange={(v) => v && setCurrency(v as Currency)}
-            aria-label="Mata uang harga resmi"
-            className="h-11 w-full rounded-xl border border-line-strong bg-surface p-1 font-mono text-xs"
-          >
-            {(["usd", "idr"] as const).map((c) => (
-              <ToggleGroupItem
-                key={c}
-                value={c}
-                className="h-full flex-1 rounded-lg px-3.5 text-fg-muted uppercase hover:bg-transparent data-[state=on]:bg-alt data-[state=on]:font-semibold data-[state=on]:text-heading"
-              >
-                {c}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-      </div>
 
-      <ToggleGroup
-        type="single"
-        value={providerId === "all" ? "" : providerId}
-        onValueChange={(v) => setProviderId(v || "all")}
-        aria-label="Filter provider"
-        className="mt-4 w-full flex-wrap"
-      >
-        {providers.map((p) => (
-          <ToggleGroupItem
-            key={p.id}
-            value={p.id}
-            className="h-auto gap-2 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-normal text-fg-soft hover:bg-surface hover:text-heading data-[state=on]:border-primary-ink/40 data-[state=on]:bg-primary-tint data-[state=on]:text-primary-ink data-[state=on]:hover:bg-primary-tint data-[state=on]:hover:text-primary-ink"
-          >
-            <ProviderLogo id={p.id} name={p.name} size={14} className="size-3.5" />
-            {p.name}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-
-      <div className="mt-10 space-y-8" aria-live="polite">
-        {groups.length === 0 && (
-          <div className="rounded-card-lg border border-line bg-surface p-10 text-center">
-            <p className="text-heading">Tidak ada model yang cocok.</p>
-            <Button type="button" variant="link" onClick={reset} className="mt-3 h-auto p-0 font-semibold text-primary-ink">
-              Reset filter
-            </Button>
-          </div>
-        )}
-        {groups.map(({ provider, models: rows }, gi) => {
-          const inputs = rows.flatMap((m) => (m.creditInputUsdPerM === null ? [] : [m.creditInputUsdPerM]));
-          const from = inputs.length > 0 ? Math.min(...inputs) : null;
-          return (
-            <section
-              key={provider.id}
-              aria-labelledby={`provider-${provider.id}`}
-              className="grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-card-lg border border-line bg-surface shadow-card md:grid-cols-[300px_minmax(0,1fr)]"
+        <ToggleGroup
+          type="single"
+          spacing={1}
+          value={providerId}
+          onValueChange={(v) => v && setProviderId(v)}
+          aria-label="Filter provider"
+          className="hidden w-full lg:mt-3 lg:flex lg:flex-col lg:items-stretch"
+        >
+          {[{ id: "all", name: "Semua provider" }, ...providers].map((p) => (
+            <ToggleGroupItem
+              key={p.id}
+              value={p.id}
+              className="h-10 justify-start gap-2.5 rounded-md px-2.5 text-sm font-normal text-fg-soft hover:bg-alt hover:text-heading data-[state=on]:bg-primary-tint data-[state=on]:font-medium data-[state=on]:text-primary-ink data-[state=on]:hover:bg-primary-tint"
             >
-              <DitherPanel seed={gi + 1} className="min-h-[150px] md:min-h-full">
-                <div className="relative flex h-full flex-col justify-between p-5">
-                  <span className="grid size-11 place-items-center rounded-xl bg-surface text-fg shadow-card">
-                    <ProviderLogo id={provider.id} name={provider.name} size={24} />
+              {p.id === "all" ? (
+                <span aria-hidden className="size-4" />
+              ) : (
+                <ProviderLogo id={p.id} name={p.name} size={16} />
+              )}
+              <span className="truncate">{p.name}</span>
+              <span className="ml-auto font-mono text-xs text-faint tabular-nums">{p.id === "all" ? models.length : (perProvider.get(p.id) ?? 0)}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </aside>
+
+      <div className="min-w-0">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
+          <FilterSelect
+            label="Kemampuan"
+            className="col-span-2 md:col-span-1"
+            value={capability}
+            onChange={setCapability}
+            options={[
+              { value: "all", label: "Semua kemampuan" },
+              ...(Object.keys(CAPABILITY) as Capability[]).map((c) => ({ value: c, label: CAPABILITY[c].label })),
+            ]}
+          />
+          <FilterSelect
+            label="Status"
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: "all", label: "Semua status" },
+              ...(Object.keys(STATUS) as ModelStatus[]).map((s) => ({ value: s, label: STATUS[s].label })),
+            ]}
+          />
+          <FilterSelect label="Urutkan" value={sort} onChange={setSort} options={SORTS} />
+          {idrAvailable && (
+            <ToggleGroup
+              type="single"
+              spacing={1}
+              value={currency}
+              onValueChange={(v) => v && setCurrency(v as Currency)}
+              aria-label="Mata uang harga"
+              className="col-span-2 h-11 w-full rounded-lg border border-line-strong bg-surface p-1 font-mono text-xs md:col-span-1"
+            >
+              {(["usd", "idr"] as const).map((c) => (
+                <ToggleGroupItem
+                  key={c}
+                  value={c}
+                  className="h-full flex-1 rounded-md px-3.5 text-fg-muted uppercase hover:bg-transparent data-[state=on]:bg-alt data-[state=on]:font-semibold data-[state=on]:text-heading"
+                >
+                  {c}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          )}
+        </div>
+
+        <p aria-live="polite" className="mt-5 font-mono text-xs text-fg-muted">
+          {shown} dari {models.length} model
+        </p>
+
+        <div className="mt-4 flex flex-col gap-6">
+          {groups.length === 0 && (
+            <Empty className="rounded-card-lg border border-solid border-line bg-surface p-10">
+              <EmptyHeader>
+                <EmptyTitle className="text-base text-heading">Tidak ada model yang cocok.</EmptyTitle>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button type="button" variant="link" onClick={reset} className="h-11 px-2 font-semibold text-primary-ink">
+                  Reset filter
+                </Button>
+              </EmptyContent>
+            </Empty>
+          )}
+          {groups.map(({ provider, models: rows }) => {
+            const inputs = rows.flatMap((m) => (m.creditInputUsdPerM === null ? [] : [m.creditInputUsdPerM]));
+            const from = inputs.length > 0 ? Math.min(...inputs) : null;
+            return (
+              <section
+                key={provider.id}
+                aria-labelledby={`provider-${provider.id}`}
+                className="overflow-hidden rounded-card-lg border border-line bg-surface"
+              >
+                <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface-2 px-4 py-4 sm:px-5">
+                  <span className="grid size-10 place-items-center rounded-lg border border-line bg-surface">
+                    <ProviderLogo id={provider.id} name={provider.name} size={22} />
                   </span>
-                  <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-surface via-surface/85 to-transparent" />
-                  <div className="relative mt-8">
-                    <h2 id={`provider-${provider.id}`} className="text-[28px] font-medium tracking-[-0.03em] text-heading">
-                      {provider.name}
-                    </h2>
-                    <p className="mt-1 font-mono text-[11px] tracking-wider text-fg-muted uppercase">
-                      {rows.length} model{from !== null && ` · mulai ${formatUsd(from)} / 1M`}
-                    </p>
-                  </div>
-                </div>
-              </DitherPanel>
+                  <h2 id={`provider-${provider.id}`} className="text-xl font-medium tracking-[-0.02em] text-heading">
+                    {provider.name}
+                  </h2>
+                  <p className="font-mono text-xs text-fg-muted sm:ml-auto">
+                    {rows.length} model{from !== null && ` · mulai ${price(from)} / 1M`}
+                  </p>
+                </header>
 
-              <div className="relative hidden min-w-0 overflow-x-auto xl:block">
-                <Table className="min-w-[860px] text-left">
-                  <TableCaption className="sr-only">Model {provider.name}</TableCaption>
-                  <TableHeader>
-                    <TableRow className="border-line hover:bg-transparent">
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint">Model</TableHead>
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint">Context</TableHead>
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint">Kemampuan</TableHead>
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint">Status</TableHead>
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint text-right">Resmi · in / out</TableHead>
-                      <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint text-right">Biaya kredit / 1M</TableHead>
-                      {plan && (
-                        <TableHead className="mono-label h-auto px-4 py-4 font-normal whitespace-normal text-faint text-right">
-                          ≈ Output per {plan.name} {formatUsd(plan.creditUsd)}
-                        </TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((m) => (
-                      <TableRow key={m.id} className="border-line hover:bg-transparent">
-                        <TableCell className="px-4 py-3.5 whitespace-normal">{nameCell(m)}</TableCell>
-                        <TableCell className="px-4 py-3.5 font-mono text-xs leading-5 whitespace-nowrap">{contextCell(m)}</TableCell>
-                        <TableCell className="px-4 py-3.5 whitespace-normal">{capabilitiesCell(m)}</TableCell>
-                        <TableCell className="px-4 py-3.5 whitespace-normal">{statusCell(m)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-right font-mono text-xs leading-5 whitespace-nowrap">{officialCell(m)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-right font-mono text-xs leading-5 whitespace-nowrap">{creditCell(m)}</TableCell>
-                        {plan && <TableCell className="px-4 py-3.5 text-right font-mono text-xs leading-5 whitespace-nowrap text-fg-soft">{perPlanCell(m)}</TableCell>}
+                <div className="hidden min-w-0 overflow-x-auto xl:block">
+                  {/* Fixed widths keep the columns lined up from one provider's table to the next. */}
+                  <Table className="min-w-[760px] table-fixed text-left">
+                    <TableCaption className="sr-only">Model {provider.name}</TableCaption>
+                    <TableHeader>
+                      <TableRow className="border-line hover:bg-transparent">
+                        <TableHead className={cn(head, "w-[30%]")}>Model · status</TableHead>
+                        <TableHead className={cn(head, "w-[11%]")}>Context</TableHead>
+                        <TableHead className={cn(head, "w-[15%]")}>Kemampuan</TableHead>
+                        <TableHead className={cn(head, "w-[16%] text-right")}>Resmi · in / out</TableHead>
+                        <TableHead className={cn(head, "w-[13%] text-right")}>Biaya kredit / 1M</TableHead>
+                        <TableHead className={cn(head, "w-[16%] text-right")}>≈ Token per $1 kredit</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((m) => (
+                        <TableRow key={m.id} className="border-line hover:bg-surface-2">
+                          <TableCell className="px-4 py-3 whitespace-normal">
+                            {nameCell(m)}
+                            <span className="mt-0.5 block">{statusCell(m)}</span>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 font-mono text-xs leading-5 whitespace-nowrap">{contextCell(m)}</TableCell>
+                          <TableCell className="px-4 py-3 whitespace-normal">{capabilitiesCell(m)}</TableCell>
+                          <TableCell className="px-4 py-3 text-right font-mono text-xs leading-5 whitespace-nowrap">{officialCell(m)}</TableCell>
+                          <TableCell className="px-4 py-3 text-right font-mono text-xs leading-5 whitespace-nowrap">{creditCell(m)}</TableCell>
+                          <TableCell className="px-4 py-3 text-right font-mono text-xs leading-5 whitespace-nowrap">{perUsdCell(m)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-              <ul className="min-w-0 divide-y divide-line [overflow-wrap:anywhere] xl:hidden" aria-label={`Model ${provider.name}`}>
-                {rows.map((m) => (
-                  <li key={m.id} className="space-y-3 px-4 py-4">
-                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      {nameCell(m)}
-                      {statusCell(m)}
-                    </div>
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 font-mono text-xs leading-5">
-                      <div>
-                        <dt className="mono-label text-faint">Biaya kredit / 1M</dt>
-                        <dd className="mt-1">{creditCell(m)}</dd>
+                <ul className="-mb-px grid min-w-0 [overflow-wrap:anywhere] md:grid-cols-2 xl:hidden" aria-label={`Model ${provider.name}`}>
+                  {rows.map((m) => (
+                    <li key={m.id} className="flex flex-col gap-3 border-b border-line px-4 py-4 md:odd:border-r">
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        {nameCell(m)}
+                        {statusCell(m)}
                       </div>
-                      <div>
-                        <dt className="mono-label text-faint">Resmi · in / out</dt>
-                        <dd className="mt-1">{officialCell(m)}</dd>
-                      </div>
-                      <div>
-                        <dt className="mono-label text-faint">Context</dt>
-                        <dd className="mt-1">{contextCell(m)}</dd>
-                      </div>
-                      <div>
-                        <dt className="mono-label text-faint">Kemampuan</dt>
-                        <dd className="mt-1">{m.capabilities.length > 0 ? capabilitiesCell(m) : <span className="text-faint">–</span>}</dd>
-                      </div>
-                      {plan && (
-                        <div className="col-span-2">
-                          <dt className="mono-label text-faint">
-                            ≈ Output per {plan.name} {formatUsd(plan.creditUsd)}
-                          </dt>
-                          <dd className="mt-1 text-fg-soft">{perPlanCell(m)}</dd>
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 font-mono text-xs leading-5">
+                        <div>
+                          <dt className="text-[11px] text-faint">Biaya kredit / 1M</dt>
+                          <dd className="mt-1">{creditCell(m)}</dd>
                         </div>
-                      )}
-                    </dl>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })}
-      </div>
+                        <div>
+                          <dt className="text-[11px] text-faint">Resmi · in / out</dt>
+                          <dd className="mt-1">{officialCell(m)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] text-faint">Context</dt>
+                          <dd className="mt-1">{contextCell(m)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[11px] text-faint">Kemampuan</dt>
+                          <dd className="mt-1">{m.capabilities.length > 0 ? capabilitiesCell(m) : <span className="text-faint">–</span>}</dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-[11px] text-faint">≈ Token per $1 kredit</dt>
+                          <dd className="mt-1">{perUsdCell(m)}</dd>
+                        </div>
+                      </dl>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
 
-      {showIdr && <FxFootnote fx={fx} className="mt-6" />}
+        {showIdr && <FxFootnote fx={fx} className="mt-6" />}
+      </div>
     </div>
   );
 }

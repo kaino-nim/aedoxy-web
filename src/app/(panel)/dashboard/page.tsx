@@ -2,7 +2,6 @@ import { CheckCircle2, CircleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { DitherPanel } from "@/components/brand/dither-panel";
 import { PageHeader } from "@/components/console/page-header";
 import { StatsPageSkeleton } from "@/components/console/skeletons";
 import { CopyButton } from "@/components/panel/copy-button";
@@ -38,8 +37,14 @@ async function Dashboard() {
       <PageHeader eyebrow="Dashboard" title={`Halo, ${user.name}`} description="Ringkasan paket dan akun Anda. Mulai dari sini untuk membuat API key dan memakai kredit." />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="overflow-hidden py-0 lg:col-span-2">
-          <div className="grid sm:grid-cols-[minmax(0,1fr)_14rem]">
+        <Card className="relative isolate overflow-hidden py-0 lg:col-span-2">
+          {/* Decorative pixel-art credit stacks (public/art/plan-credits.svg); the left edge fades so the text stays readable. */}
+          <div
+            aria-hidden
+            className="absolute inset-y-0 right-0 -z-10 hidden w-1/2 bg-contain bg-right-bottom bg-no-repeat opacity-90 [mask-image:linear-gradient(to_right,transparent,#000_45%)] sm:block"
+            style={{ backgroundImage: "url(/art/plan-credits.svg)" }}
+          />
+          <div className="grid">
             <div className="flex flex-col gap-4 p-5">
               <p className="mono-label">Paket aktif</p>
               {plan ? (
@@ -59,7 +64,6 @@ async function Dashboard() {
                 </div>
               )}
             </div>
-            <DitherPanel seed={4} className="h-24 sm:h-auto" />
           </div>
         </Card>
 

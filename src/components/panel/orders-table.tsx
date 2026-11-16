@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { CancelOrderButton } from "@/components/panel/cancel-order-button";
 import { ToneBadge } from "@/components/panel/order-badge";
 import { Button } from "@/components/ui/button";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { DataTable, dataColumns, optionsFrom, type FilterDef } from "@/components/ui/data-table";
 import { formatIdr } from "@/lib/format";
 import type { OrderListItem } from "@/lib/order-status";
 
@@ -67,12 +67,15 @@ export function OrdersTable() {
   // Stable columns: a new array every render would rebuild the row models.
   const columns = useMemo(() => ordersColumns(() => void queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY })), [queryClient]);
 
+  const filters = useMemo<FilterDef[]>(() => [{ id: "statusLabel", label: "Status", type: "select", options: optionsFrom((query.data ?? emptyRows).map((o) => o.statusLabel)) }], [query.data]);
+
   return (
     <DataTable
       data={query.data ?? emptyRows}
       columns={columns}
       caption="Riwayat pesanan"
       searchLabel="Cari paket atau status"
+      filters={filters}
       getRowId={(o) => o.id}
       isLoading={query.isPending}
       error={query.isError && !query.data ? "Riwayat pesanan tidak bisa dimuat." : null}

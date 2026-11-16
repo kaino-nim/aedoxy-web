@@ -21,8 +21,8 @@ export function PasswordField({ id = "password" }: { id?: string }) {
 export function BackupCodesCard() {
   const [state, action, pending] = useActionState<SecurityFormState, FormData>(regenerateBackupCodesAction, {});
   return (
-    <SectionCard title="Kode cadangan" description="Dipakai bila aplikasi autentikator tidak tersedia. Membuat kode baru membuat semua kode lama hangus.">
-      <form action={action} className="max-w-sm space-y-4">
+    <SectionCard stacked title="Kode cadangan" description="Dipakai bila aplikasi autentikator tidak tersedia. Membuat kode baru membuat semua kode lama hangus.">
+      <form action={action} className="space-y-4">
         <PasswordField id="password-codes" />
         <TotpField id="totp-codes" />
         <FormResult error={state.error} ok={state.ok} />
@@ -50,10 +50,11 @@ export function ResetTwoFactorCard() {
   const [state, action, pending] = useActionState<SecurityFormState, FormData>(resetTwoFactorAction, {});
   return (
     <SectionCard
+      stacked
       title="Atur ulang 2FA"
       description="Menonaktifkan 2FA lalu mendaftarkan ulang dengan perangkat baru. Sesi di perangkat lain keluar, dan halaman admin terkunci sampai pendaftaran selesai."
     >
-      <form action={action} className="max-w-sm space-y-4">
+      <form action={action} className="space-y-4">
         <PasswordField id="password-reset" />
         <TotpField id="totp-reset" />
         <FormResult error={state.error} />

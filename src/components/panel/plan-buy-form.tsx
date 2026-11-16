@@ -104,7 +104,7 @@ export function PlanBuyForm({ planId, summary, fx, disabled, promoCode }: { plan
                     required
                     checked={confirmed}
                     onChange={(e) => setConfirmed(e.target.checked)}
-                    className="mt-0.5 size-4 shrink-0 accent-primary"
+                    className="mt-0.5 size-4 shrink-0 check-primary"
                   />
                   Saya mengerti paket lama akan diganti
                 </label>

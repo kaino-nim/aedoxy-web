@@ -1,8 +1,10 @@
 "use client";
 
 import { adminDate } from "@/components/admin/common";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { dataColumns, type FilterDef } from "@/components/ui/data-table";
+import { ServerDataTable } from "@/components/ui/server-data-table";
 import { formatUsd, QUOTA_PER_USD } from "@/lib/format";
+import { LEDGER_TYPE_VALUES } from "@/lib/order-status";
 
 export type LedgerRow = { id: number; createdAt: string; type: string; delta: number; tradeNo: string | null; actorId: string | null; note: string | null };
 
@@ -31,7 +33,26 @@ const columns = col.columns([
   col.accessor((r) => r.note ?? "", { id: "note", header: "Catatan", cell: (c) => <span title={c.getValue()} className="inline-block max-w-64 truncate align-bottom text-fg-muted">{c.getValue()}</span> }),
 ]);
 
-/** The server already filtered and paged these rows (URL filters); headers sort the current page only. */
-export function LedgerTable({ rows }: { rows: LedgerRow[] }) {
-  return <DataTable manual data={rows} columns={columns} caption="Ledger pool" getRowId={(r) => String(r.id)} empty="Tidak ada baris." />;
+const FILTERS: FilterDef[] = [
+  { id: "type", label: "Tipe", type: "select", options: LEDGER_TYPE_VALUES.map((t) => ({ value: t, label: t })) },
+  { id: "from", label: "Dari (WIB)", type: "date" },
+  { id: "to", label: "Sampai (WIB)", type: "date" },
+];
+
+/** Filtered, sorted and paged by GET /api/admin/ledger (TanStack Query); `initial` is the first page from the server. */
+export function LedgerTable({ initial, initialFilters }: { initial: { rows: LedgerRow[]; total: number }; initialFilters?: Record<string, string> }) {
+  return (
+    <ServerDataTable
+      endpoint="/api/admin/ledger"
+      columns={columns}
+      caption="Ledger pool"
+      getRowId={(r) => String(r.id)}
+      sortable={["createdAt", "type", "delta"]}
+      filters={FILTERS}
+      hideSearch
+      initial={initial}
+      initialFilters={initialFilters}
+      empty="Tidak ada baris."
+    />
+  );
 }

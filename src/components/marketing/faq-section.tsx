@@ -43,7 +43,7 @@ export function FaqSection() {
   return (
     <section className="section-rule">
       <div className="container-x grid gap-10 py-20 sm:py-28 lg:grid-cols-[1fr_1.5fr] lg:gap-16">
-        <div className="reveal">
+        <div data-rise>
           <p className="eyebrow">FAQ</p>
           <h2 className="mt-4 text-[34px] leading-[1.1] font-medium tracking-[-0.035em] text-heading sm:text-5xl">
             Sebelum
@@ -58,7 +58,7 @@ export function FaqSection() {
           </Button>
         </div>
 
-        <Accordion type="single" collapsible defaultValue="faq-0" className="reveal">
+        <Accordion type="single" collapsible defaultValue="faq-0" data-rise>
           {FAQ.map((item, i) => (
             <AccordionItem key={item.q} value={`faq-${i}`} className="border-line data-open:rounded-2xl data-open:border-transparent data-open:bg-alt">
               <AccordionTrigger className="items-center gap-4 rounded-2xl px-5 py-5 text-[17px] font-medium text-heading hover:no-underline">

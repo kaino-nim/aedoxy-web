@@ -1,4 +1,3 @@
-export type DocsLang = "id" | "en";
 
 export const DEFAULT_API_KEY = "YOUR_API_KEY";
 
@@ -48,7 +47,6 @@ const trimUrl = (value: string) => value.trim().replace(/\/+$/, "");
 
 export type SnippetInput = {
   brandName: string;
-  lang: DocsLang;
   /** What the visitor typed. Empty values fall back to `defaults`. */
   gatewayUrl: string;
   apiKey: string;
@@ -56,14 +54,14 @@ export type SnippetInput = {
   defaults: { gatewayUrl: string; model: string };
 };
 
-export function buildDocsSnippets({ brandName, lang, gatewayUrl, apiKey, model, defaults }: SnippetInput): DocsSnippets {
+export function buildDocsSnippets({ brandName, gatewayUrl, apiKey, model, defaults }: SnippetInput): DocsSnippets {
   const anthropicUrl = trimUrl(gatewayUrl) || trimUrl(defaults.gatewayUrl);
   const openaiUrl = `${anthropicUrl}/v1`;
   const key = apiKey.trim() || DEFAULT_API_KEY;
   const mdl = model.trim() || defaults.model;
   const providerId = brandSlug(brandName);
   const envKey = brandEnvKey(brandName);
-  const hello = lang === "en" ? "Hello!" : "Halo!";
+  const hello = "Halo!";
   const q = JSON.stringify; // a typed value with quotes must not break the JSON/TOML/JS/Python strings below
   const body = (extra: object = {}) => JSON.stringify({ model: mdl, ...extra, messages: [{ role: "user", content: hello }] });
 

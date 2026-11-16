@@ -1,7 +1,8 @@
 "use client";
 
 import { adminDate } from "@/components/admin/common";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { dataColumns, type FilterDef } from "@/components/ui/data-table";
+import { ServerDataTable } from "@/components/ui/server-data-table";
 
 export type AuditRow = {
   id: number;
@@ -41,7 +42,25 @@ const columns = col.columns([
   col.accessor((r) => r.ip ?? "-", { id: "ip", header: "IP", cell: (c) => <span className="font-mono text-xs text-fg-muted">{c.getValue()}</span> }),
 ]);
 
-/** The server already filtered and paged these rows (URL filters); headers sort the current page only. */
-export function AuditTable({ rows }: { rows: AuditRow[] }) {
-  return <DataTable manual data={rows} columns={columns} caption="Catatan audit admin" getRowId={(r) => String(r.id)} empty="Tidak ada catatan." />;
+const FILTERS: FilterDef[] = [
+  { id: "action", label: "Aksi (awalan)", type: "text" },
+  { id: "actor", label: "Pelaku (id/email)", type: "text" },
+];
+
+/** Filtered, sorted and paged by GET /api/admin/audit (TanStack Query); `initial` is the first page from the server. */
+export function AuditTable({ initial, initialFilters }: { initial: { rows: AuditRow[]; total: number }; initialFilters?: Record<string, string> }) {
+  return (
+    <ServerDataTable
+      endpoint="/api/admin/audit"
+      columns={columns}
+      caption="Catatan audit admin"
+      getRowId={(r) => String(r.id)}
+      sortable={["createdAt", "action", "target"]}
+      filters={FILTERS}
+      hideSearch
+      initial={initial}
+      initialFilters={initialFilters}
+      empty="Tidak ada catatan."
+    />
+  );
 }

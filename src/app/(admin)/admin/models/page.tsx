@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { param, type SearchParams } from "@/components/admin/common";
-import { ModelMetaForm } from "@/components/admin/model-meta-form";
-import { ModelsTable } from "@/components/admin/models-table";
-import { PageHeader } from "@/components/console/page-header";
+import { ModelsManager } from "@/components/admin/models-manager";
 import { TablePageSkeleton } from "@/components/console/skeletons";
 import { requireAdmin } from "@/server/admin";
 import { getCatalog } from "@/server/catalog";
@@ -23,48 +20,15 @@ export default function ModelsAdminPage({ searchParams }: { searchParams: Search
 async function ModelsAdmin({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin();
   const sp = await searchParams;
-  const pick = param(sp.edit) ?? param(sp.model);
   const [metas, catalog] = await Promise.all([listModelMeta(), getCatalog()]);
-
-  const editing = metas.find((m) => m.modelName === pick);
-  const defaults = editing ?? { modelName: pick ?? "", provider: "", contextIn: null, contextOut: null, capabilities: [], officialInputUsdPerM: null, officialOutputUsdPerM: null, visible: true };
   const known = new Set(metas.map((m) => m.modelName));
-  const missing = catalog.models.filter((m) => !known.has(m.id));
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Admin"
-        title="Metadata model"
-        description={
-          <>
-            Daftar dan biaya kredit model datang dari New API. Di sini Anda mengisi yang tidak disimpan New API: provider, context, kemampuan, dan harga resmi.
-            {catalog.state !== "ok" && " Daftar model dari New API belum bisa dimuat sekarang."}
-          </>
-        }
-      />
-
-      <h2 className="text-xl font-medium tracking-[-0.02em] text-heading">{editing ? `Ubah ${editing.modelName}` : "Tambah / ubah metadata"}</h2>
-      <ModelMetaForm key={defaults.modelName} defaults={defaults} />
-
-      {missing.length > 0 && (
-        <div>
-          <h2 className="text-xl font-medium tracking-[-0.02em] text-heading">Model tanpa metadata</h2>
-          <p className="mt-1 text-sm text-fg-muted">Tampil di /models dengan context dan kemampuan kosong sampai diisi.</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {missing.map((m) => (
-              <li key={m.id}>
-                <Link href={`/admin/models?model=${encodeURIComponent(m.id)}`} className="rounded-full border border-line-strong px-3 py-1 font-mono text-xs text-fg-soft hover:text-heading">
-                  {m.id}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <h2 className="pt-4 text-xl font-medium tracking-[-0.02em] text-heading">Metadata tersimpan</h2>
-      <ModelsTable rows={metas} />
-    </div>
+    <ModelsManager
+      rows={metas}
+      missing={catalog.models.filter((m) => !known.has(m.id)).map((m) => m.id)}
+      initialModel={param(sp.edit) ?? param(sp.model)}
+      catalogUnavailable={catalog.state !== "ok"}
+    />
   );
 }

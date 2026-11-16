@@ -49,15 +49,19 @@ export function sortModels(models: Model[], sort: ModelSort): Model[] {
   }
 }
 
+/** 1 / price, for a positive finite price; null for missing, zero or non-finite ones (no division by zero, no Infinity). */
+const inverse = (price: number | null) => (price !== null && Number.isFinite(price) && price > 0 ? 1 / price : null);
+
 /**
- * What `creditUsd` of plan credit buys of this model if it were spent on output only: output tokens
- * (credit / output price per 1M), or requests for fixed-price models. Input tokens are billed from
- * the same credit, so real use gets fewer output tokens. Null when the price is unknown or zero.
+ * What $1 of credit buys of this model: millions of input and output tokens (1 / price per 1M each, as if the
+ * whole dollar were spent on that side only), or requests for fixed-price models. Null when no price is known.
  */
-export function outputPerPlan(m: Model, creditUsd: number): { unit: "token" | "request"; count: number } | null {
-  if (m.creditOutputUsdPerM !== null && m.creditOutputUsdPerM > 0) return { unit: "token", count: Math.floor((creditUsd / m.creditOutputUsdPerM) * 1_000_000) };
-  if (m.creditPerRequestUsd !== null && m.creditPerRequestUsd > 0) return { unit: "request", count: Math.floor(creditUsd / m.creditPerRequestUsd) };
-  return null;
+export function tokensPerUsd(m: Model): { unit: "token"; input: number | null; output: number | null } | { unit: "request"; count: number } | null {
+  const input = inverse(m.creditInputUsdPerM);
+  const output = inverse(m.creditOutputUsdPerM);
+  if (input !== null || output !== null) return { unit: "token", input, output };
+  const perRequest = inverse(m.creditPerRequestUsd);
+  return perRequest === null ? null : { unit: "request", count: Math.floor(perRequest) };
 }
 
 /**

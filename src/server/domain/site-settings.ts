@@ -32,6 +32,7 @@ export function siteDefaults(): SiteSettings {
     announcement: { enabled: false, text: "", href: "", linkLabel: "" },
     apiBaseUrl: site.apiBaseUrl.replace(/\/+$/, ""),
     sampleModel: DEFAULT_SAMPLE_MODEL,
+    modelPricingUrl: "",
   };
 }
 

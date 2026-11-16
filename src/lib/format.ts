@@ -18,6 +18,14 @@ export function formatUsd(n: number): string {
 
 const trim = (s: string) => s.replace(/\.?0+$/, "");
 
+/** Millions of tokens in Indonesian number format: 12.5 -> "12,5 M", 0.1 -> "0,1 M", 1234 -> "1.234 M". "-" for missing or non-positive values. */
+export function formatMTokens(n: number | null): string {
+  if (n === null || !Number.isFinite(n) || n <= 0) return "-";
+  if (n < 0.01) return "< 0,01 M";
+  const digits = n >= 100 ? 0 : n >= 1 ? 1 : 2;
+  return `${new Intl.NumberFormat("id-ID", { maximumFractionDigits: digits }).format(n)} M`;
+}
+
 /** 1_050_000 -> "1.05M", 128_000 -> "128K", 2_700_000_000 -> "2.7B". */
 export function formatTokens(n: number): string {
   if (n >= 1e9) return `${trim((n / 1e9).toFixed(1))}B`;

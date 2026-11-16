@@ -1,11 +1,7 @@
-import type { DocsLang } from "../snippets";
-import { en } from "./en";
 import { id } from "./id";
 import type { DocsDict } from "./types";
 
 export type { DocsDict };
-
-export const DICTIONARIES: Record<DocsLang, DocsDict> = { id, en };
 
 export type DictVars = { brand: string; envKey: string };
 
@@ -21,6 +17,6 @@ export function fillDict<T>(value: T, vars: DictVars): T {
   return value;
 }
 
-export function getDict(lang: DocsLang, vars: DictVars): DocsDict {
-  return fillDict(DICTIONARIES[lang], vars);
+export function getDict(vars: DictVars): DocsDict {
+  return fillDict(id, vars);
 }

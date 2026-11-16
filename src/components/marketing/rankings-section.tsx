@@ -15,7 +15,7 @@ export function RankingsSection({ rankings, providers, brandName }: { rankings: 
   return (
     <section className="section-rule border-b border-line bg-alt">
       <div className="container-x grid gap-10 py-20 sm:py-28 lg:grid-cols-[1fr_1.5fr] lg:items-center lg:gap-16">
-        <div className="reveal">
+        <div data-rise>
           <p className="eyebrow">Ranking</p>
           <h2 className="mt-4 text-[34px] leading-[1.1] font-medium tracking-[-0.035em] text-heading sm:text-[44px]">
             Model yang paling banyak
@@ -33,8 +33,9 @@ export function RankingsSection({ rankings, providers, brandName }: { rankings: 
           {top.map((r, i) => (
             <li
               key={r.modelId}
+              data-rise
               className={cn(
-                "reveal grid grid-cols-[2rem_1fr_auto] items-center gap-x-4 gap-y-3 rounded-2xl p-4 sm:grid-cols-[2rem_1fr_9rem_5rem]",
+                "grid grid-cols-[2rem_1fr_auto] items-center gap-x-4 gap-y-3 rounded-2xl p-4 sm:grid-cols-[2rem_1fr_9rem_5rem]",
                 i === 0 ? "grad-border" : "bg-surface-2/60",
               )}
             >

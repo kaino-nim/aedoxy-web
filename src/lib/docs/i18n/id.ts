@@ -5,7 +5,6 @@ export const id: DocsDict = {
     copy: "Salin",
     copied: "Disalin",
     copiedAnnounce: "Kode disalin ke clipboard",
-    switchLanguage: "Ganti bahasa",
     showKey: "Tampilkan API key",
     hideKey: "Sembunyikan API key",
   },

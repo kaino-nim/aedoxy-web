@@ -95,6 +95,7 @@ export function PasskeyCard({ items }: { items: PasskeyItem[] }) {
 
   return (
     <SectionCard
+      stacked
       title="Passkey"
       description="Masuk tanpa kode 2FA dengan sidik jari, wajah, atau PIN perangkat. Passkey juga bisa menggantikan kode 2FA saat mengganti kredensial. 2FA tetap wajib untuk akses admin."
     >
@@ -108,7 +109,7 @@ export function PasskeyCard({ items }: { items: PasskeyItem[] }) {
         <p className="mb-6 text-sm text-fg-muted">Belum ada passkey.</p>
       )}
       {supported ? (
-        <form onSubmit={add} className="max-w-sm space-y-4">
+        <form onSubmit={add} className="space-y-4">
           <Field label="Nama passkey (opsional)" htmlFor="passkey-name" hint="Contoh: Laptop kantor.">
             <Input id="passkey-name" name="name" maxLength={60} autoComplete="off" className="h-9 bg-background" />
           </Field>

@@ -1,36 +1,27 @@
-import { Layers, QrCode, ShieldCheck, Wallet } from "lucide-react";
+import { QrCode } from "lucide-react";
 import Link from "next/link";
-import { DitherPanel } from "@/components/brand/dither-panel";
 import { ProviderLogo } from "@/components/brand/provider-logo";
 import { UsdIdr } from "@/components/usd-idr";
 import { formatIdr, formatUsd } from "@/lib/format";
 import { periodUnit } from "@/lib/plans";
+import { DEFAULT_SAMPLE_MODEL } from "@/lib/schemas/site";
 import { cn } from "@/lib/utils";
 import type { FxRate, Model, Plan, Provider } from "@/server/catalog/types";
 
-function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div className={cn("reveal overflow-hidden rounded-card-lg border border-line bg-surface shadow-card transition-shadow hover:shadow-card-hover", className)}>
-      {children}
-    </div>
-  );
-}
-
-function CardCopy({ icon: Icon, title, children }: { icon: typeof Layers; title: string; children: React.ReactNode }) {
-  return (
-    <div className="p-6 sm:p-8">
-      <div className="flex items-center gap-3">
-        <span className="grid size-8 place-items-center rounded-lg bg-primary-tint text-primary-ink">
-          <Icon className="size-4" aria-hidden />
-        </span>
-        <h3 className="text-lg font-medium tracking-[-0.01em] text-heading">{title}</h3>
-      </div>
-      <p className="mt-3 text-[15px] leading-relaxed text-fg-muted">{children}</p>
-    </div>
-  );
-}
-
 const kindOf = (m: Model) => (m.capabilities.includes("reasoning") ? "REASONING" : m.capabilities.includes("image") ? "VISION" : "CHAT");
+
+const ART_FADE = "linear-gradient(to bottom, #000 35%, transparent 85%)";
+
+/** One bento tile: rounded white card, copy first, its own visual underneath. */
+function Tile({ title, body, className, children }: { title: string; body: React.ReactNode; className?: string; children?: React.ReactNode }) {
+  return (
+    <article data-rise className={cn("flex min-w-0 flex-col rounded-card-lg border border-line bg-surface p-5 shadow-card sm:p-7", className)}>
+      <h3 className="text-xl font-medium tracking-[-0.02em] text-heading">{title}</h3>
+      <p className="mt-2 max-w-[46ch] text-[15px] leading-relaxed text-fg-muted">{body}</p>
+      {children}
+    </article>
+  );
+}
 
 export function PlatformSection({
   models,
@@ -45,82 +36,112 @@ export function PlatformSection({
   plan: Plan | null;
   fx: FxRate | null;
 }) {
-  const sample = providers.flatMap((p) => models.find((m) => m.providerId === p.id) ?? []).slice(0, 4);
+  const sample = providers.flatMap((p) => models.find((m) => m.providerId === p.id) ?? []).slice(0, 6);
+  const branches = providers.slice(0, 3);
+  // Real models first; with an empty catalogue, clearly labelled placeholder rows keep the card from being blank.
+  const pills =
+    sample.length > 0
+      ? sample.map((m) => ({ id: m.id, providerId: m.providerId, label: kindOf(m) }))
+      : Array.from({ length: 3 }, (_, i) => ({ id: DEFAULT_SAMPLE_MODEL, providerId: providers[i]?.id ?? "model", label: "CONTOH" }));
 
   return (
-    <section className="section-rule">
-      <div className="container-x py-20 sm:py-28">
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-end">
-          <div className="reveal">
-            <p className="eyebrow">Platform</p>
-            <h2 className="mt-4 text-[34px] leading-[1.08] font-medium tracking-[-0.035em] text-heading sm:text-5xl">
-              Satu pintu masuk.
-              <br />
-              <span className="text-fg-muted">Banyak model di belakangnya.</span>
-            </h2>
-          </div>
-          <p className="reveal max-w-md text-[17px] leading-[1.65] text-fg-muted lg:justify-self-end">
-            {brandName} meneruskan request Anda ke provider yang tepat dan memotong kredit dari satu paket aktif. Tidak ada akun
-            atau tagihan terpisah untuk tiap provider.
+    <section className="section-rule" aria-labelledby="platform-title">
+      <div className="container-x py-14 sm:py-20">
+        <div className="grid gap-6 lg:grid-cols-12 lg:items-end lg:gap-10">
+          <h2
+            id="platform-title"
+            data-rise
+            className="text-[34px] leading-[1.08] font-medium tracking-[-0.035em] text-heading sm:text-5xl lg:col-span-7"
+          >
+            Satu pintu masuk.
+            <br />
+            <span className="text-fg-muted">Banyak model di belakangnya.</span>
+          </h2>
+          <p data-rise className="max-w-md text-[17px] leading-[1.65] text-fg-muted lg:col-span-5 lg:justify-self-end">
+            {brandName} meneruskan request Anda ke provider yang tepat dan memotong kredit dari satu paket aktif. Tidak ada akun atau
+            tagihan terpisah untuk tiap provider.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 lg:grid-cols-[1.15fr_1fr]">
-          <Card>
-            <DitherPanel seed={11} className="h-[250px] px-5 pt-6 sm:px-8">
-              <ul className="space-y-2.5">
-                {sample.map((m) => (
-                  <li key={m.id} className="flex h-11 items-center gap-3 rounded-xl bg-surface px-4 shadow-card">
-                    <ProviderLogo id={m.providerId} name={m.providerId} size={18} />
-                    <span className="font-mono text-sm text-fg">{m.id}</span>
-                    <span className="ml-auto font-mono text-[10px] tracking-wider text-faint">{kindOf(m)}</span>
+        <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-12">
+          <Tile
+            title="Satu katalog, dua format"
+            body="Panggil model dengan format OpenAI Chat Completions atau Anthropic Messages, sesuai yang sudah dipakai kode Anda."
+            className={plan ? "lg:col-span-5 lg:row-span-2" : "lg:col-span-12"}
+          >
+            {/* Orange wash that fades into the card surface, with a stack of white model pills on top. */}
+            <div className="relative isolate mt-6 flex flex-1 flex-col justify-end gap-5 overflow-hidden rounded-xl bg-linear-to-b from-primary-tint to-surface p-3 pt-24 sm:p-5 sm:pt-32">
+              {/* Decorative ordered-dither mosaic (public/art/catalog-dither.svg); its cells thin out toward the pills. */}
+              <div
+                aria-hidden
+                className="absolute inset-0 -z-10 bg-cover bg-top bg-no-repeat"
+                style={{ backgroundImage: "url(/art/catalog-dither.svg)", maskImage: ART_FADE, WebkitMaskImage: ART_FADE }}
+              />
+              <ul className="flex flex-wrap gap-2 font-mono text-xs font-medium text-primary-ink">
+                {["OpenAI Chat Completions", "Anthropic Messages"].map((f) => (
+                  <li key={f} className="rounded-full border border-primary-ink/30 bg-surface px-2.5 py-1">
+                    {f}
                   </li>
                 ))}
               </ul>
-              <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-surface to-transparent" />
-            </DitherPanel>
-            <CardCopy icon={Layers} title="Satu katalog, dua format">
-              Panggil model dengan format OpenAI Chat Completions atau Anthropic Messages, sesuai yang sudah dipakai kode Anda.
-            </CardCopy>
-          </Card>
+              <ul className="flex flex-col gap-2">
+                {pills.map((m, i) => (
+                  <li
+                    key={`${m.id}-${i}`}
+                    className="flex h-12 min-w-0 items-center gap-3 rounded-full border border-line bg-surface pr-4 pl-3.5 shadow-card"
+                  >
+                    <ProviderLogo id={m.providerId} name={m.providerId} size={20} />
+                    <span className="truncate font-mono text-sm text-fg">{m.id}</span>
+                    <span className="ml-auto font-mono text-[10px] text-faint">{m.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Tile>
 
           {plan && (
-            <Card>
-              <div className="p-6 sm:p-8">
-                <div className="rounded-xl border border-line bg-surface-2 p-5">
-                  <p className="mono-label">Contoh paket aktif</p>
-                  <dl className="mt-3 divide-y divide-line text-sm">
-                    <Row term="Paket" detail={`${plan.name} · ${formatUsd(plan.creditUsd)} kredit`} />
-                    <Row term="Harga flat" detail={formatIdr(plan.priceIdr)} />
-                    <Row
-                      term="Kredit"
-                      detail={
-                        <span className="flex flex-col items-end">
-                          {formatUsd(plan.creditUsd)}
-                          <UsdIdr usd={plan.creditUsd} fx={fx} />
-                        </span>
-                      }
-                    />
-                    <Row term="Masa aktif" detail={`${plan.durationDays} hari`} />
-                    <Row term="Sisa kredit" detail="hangus di akhir masa aktif" />
-                  </dl>
+            <Tile
+              title="Satu paket, semua provider"
+              body="Semua model memotong kredit dari paket yang sama. Satu akun hanya punya satu paket aktif."
+              className="lg:col-span-7"
+            >
+              <p className="mt-5 text-xs text-faint">Contoh paket aktif</p>
+              <dl className="mt-1 grid gap-x-10 text-sm sm:grid-cols-2">
+                <div className="divide-y divide-line">
+                  <Row term="Paket" detail={`${plan.name} · ${formatUsd(plan.creditUsd)} kredit`} />
+                  <Row term="Masa aktif" detail={`${plan.durationDays} hari`} />
                 </div>
-              </div>
-              <CardCopy icon={Wallet} title="Satu paket, semua provider">
-                Semua model memotong kredit dari paket yang sama. Satu akun hanya punya satu paket aktif.
-              </CardCopy>
-            </Card>
+                <div className="divide-y divide-line border-t border-line sm:border-t-0">
+                  <Row
+                    term="Kredit"
+                    detail={
+                      <span className="flex flex-col items-end">
+                        {formatUsd(plan.creditUsd)}
+                        <UsdIdr usd={plan.creditUsd} fx={fx} />
+                      </span>
+                    }
+                  />
+                  <Row term="Sisa kredit" detail="hangus di akhir masa aktif" />
+                </div>
+              </dl>
+            </Tile>
           )}
-        </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_1.5fr]">
           {plan && (
-            <Card className="flex flex-col">
-              <div className="flex-1 p-6 sm:p-8">
-                <p className="mono-label">Bayar sekali per periode</p>
-                <p className="mt-4 text-5xl leading-none font-medium tracking-[-0.045em] text-heading">{formatIdr(plan.priceIdr)}</p>
-                <p className="mt-2 font-mono text-xs text-faint">/ {periodUnit(plan)} · {formatUsd(plan.creditUsd)} kredit</p>
-                <ul className="mt-6 flex flex-wrap gap-2 text-xs">
+            <Tile
+              title="Harga flat dalam rupiah"
+              body="Yang Anda bayar adalah harga paket, bukan hasil hitung kurs. Estimasi rupiah dari kredit dolar hanya keterangan."
+              className="lg:col-span-7"
+            >
+              <div className="mt-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+                <div>
+                  <p className="text-xs text-faint">Bayar sekali per periode</p>
+                  <p className="mt-2 text-5xl leading-none font-medium tracking-[-0.045em] text-heading tabular-nums">{formatIdr(plan.priceIdr)}</p>
+                  <p className="mt-2 font-mono text-xs text-faint">
+                    / {periodUnit(plan)} · {formatUsd(plan.creditUsd)} kredit
+                  </p>
+                </div>
+                <ul className="flex flex-wrap gap-2 text-xs">
                   {["QRIS", "Virtual Account"].map((m) => (
                     <li key={m} className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 font-mono text-fg-soft">
                       <QrCode className="size-3.5" aria-hidden />
@@ -129,46 +150,67 @@ export function PlatformSection({
                   ))}
                 </ul>
               </div>
-              <CardCopy icon={Wallet} title="Harga flat dalam rupiah">
-                Yang Anda bayar adalah harga paket, bukan hasil hitung kurs. Estimasi rupiah dari kredit dolar hanya keterangan.
-              </CardCopy>
-            </Card>
+            </Tile>
           )}
 
-          <Card className={plan ? undefined : "lg:col-span-2"}>
-            <div className="p-6 sm:p-8">
-              <div className="grid gap-3 sm:grid-cols-3">
+          {/* TODO(owner): state prompt-retention facts here once confirmed; only HTTPS is claimed for now. */}
+          <Tile
+            title="Alur request yang sederhana"
+            className="lg:col-span-12"
+            body={
+              <>
+                Request dikirim lewat HTTPS ke gateway {brandName}, lalu diteruskan ke provider model.{" "}
+                <Link href="/privacy" className="text-primary-ink underline underline-offset-2">
+                  Baca Kebijakan Privasi
+                </Link>
+                .
+              </>
+            }
+          >
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-10">
+              <dl className="grid grid-cols-3 divide-x divide-line">
                 {[
                   ["Dalam transit", "HTTPS"],
                   ["Sisa kredit", "Hangus di akhir"],
                   ["Paket aktif", "Satu per akun"],
                 ].map(([k, v]) => (
-                  <div key={k} className="rounded-xl border border-line p-4">
-                    <p className="mono-label">{k}</p>
-                    <p className="mt-2 text-xl font-medium tracking-[-0.02em] text-heading">{v}</p>
+                  <div key={k} className="px-3 first:pl-0 last:pr-0 sm:px-4">
+                    <dt className="text-xs text-faint">{k}</dt>
+                    <dd className="mt-1.5 text-[15px] leading-snug font-medium text-heading sm:text-lg">{v}</dd>
                   </div>
                 ))}
-              </div>
-              <ol aria-label="Alur request" className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line p-3 font-mono text-xs text-fg-soft">
-                {["Aplikasi Anda", "HTTPS", brandName, "Provider"].map((step, i, all) => (
-                  <li key={step} className="flex items-center gap-2">
-                    <span className={cn("rounded-md border px-2.5 py-1.5", i === 2 ? "border-primary-ink/40 bg-primary-tint text-primary-ink" : "border-line bg-surface-2")}>
-                      {step}
+              </dl>
+              <div
+                role="img"
+                aria-label={`Alur request: aplikasi Anda, lewat HTTPS, ke gateway ${brandName}, lalu ke provider model`}
+                className="route flex items-center font-mono text-xs text-fg-soft"
+              >
+                <span aria-hidden className="shrink-0 rounded-md border border-line bg-surface-2 px-2.5 py-2">
+                  Aplikasi Anda
+                </span>
+                <span aria-hidden className="flex min-w-8 flex-1 flex-col items-center gap-1.5">
+                  <span className="text-[10px] text-faint">HTTPS</span>
+                  <span className="route-line relative h-px w-full" />
+                </span>
+                <span aria-hidden className="shrink-0 rounded-md border border-primary-ink/40 bg-primary-tint px-2.5 py-2 text-primary-ink">
+                  {brandName}
+                </span>
+                <span aria-hidden className="route-line relative h-px w-5 shrink-0 sm:w-8" />
+                <span aria-hidden className="relative flex flex-col gap-2">
+                  {branches.length > 1 && <span className="route-line route-line-y absolute top-[18px] bottom-[18px] left-0 w-px" />}
+                  {(branches.length > 0 ? branches : [{ id: "provider", name: "Provider" }]).map((p) => (
+                    <span key={p.id} className="flex h-9 items-center">
+                      <span className="route-line relative h-px w-3 shrink-0 sm:w-4" />
+                      <span className="flex h-9 items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5">
+                        <ProviderLogo id={p.id} name={p.name} size={14} />
+                        <span className="hidden sm:inline">{p.name}</span>
+                      </span>
                     </span>
-                    {i < all.length - 1 && <span aria-hidden className="text-faint">→</span>}
-                  </li>
-                ))}
-              </ol>
+                  ))}
+                </span>
+              </div>
             </div>
-            {/* TODO(owner): state prompt-retention facts here once confirmed; only HTTPS is claimed for now. */}
-            <CardCopy icon={ShieldCheck} title="Alur request yang sederhana">
-              Request dikirim lewat HTTPS ke gateway {brandName}, lalu diteruskan ke provider model.{" "}
-              <Link href="/privacy" className="text-primary-ink underline underline-offset-2">
-                Baca Kebijakan Privasi
-              </Link>
-              .
-            </CardCopy>
-          </Card>
+          </Tile>
         </div>
       </div>
     </section>

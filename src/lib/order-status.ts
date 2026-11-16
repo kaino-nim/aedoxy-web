@@ -2,6 +2,11 @@
 
 export type OrderStatus = "pending" | "paid" | "failed" | "expired" | "cancelled" | "refunded";
 export type FulfillmentStatus = "queued" | "retrying" | "succeeded" | "dead";
+
+/** Value lists for client-side filter menus (the DB enums live in server-only code). Same values as the pg enums. */
+export const ORDER_STATUS_VALUES = ["pending", "paid", "failed", "expired", "cancelled", "refunded"] as const satisfies readonly OrderStatus[];
+export const FULFILLMENT_STATUS_VALUES = ["queued", "retrying", "succeeded", "dead"] as const satisfies readonly FulfillmentStatus[];
+export const LEDGER_TYPE_VALUES = ["admin_adjust", "reserve", "release", "sell", "late_sell", "expire_return", "replace_return", "refund_return"] as const;
 export type OrderTone = "pending" | "success" | "danger" | "muted";
 
 export type OrderStateView = { label: string; detail: string; tone: OrderTone; final: boolean };

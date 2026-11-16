@@ -4,7 +4,7 @@ import { adminDate } from "@/components/admin/common";
 import { StopPromoDialog } from "@/components/admin/promo-forms";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { DataTable, dataColumns, type FilterDef } from "@/components/ui/data-table";
 import { formatIdr } from "@/lib/format";
 import { summarizePromoPlans } from "@/lib/promo-plans";
 import type { PromoStatus } from "@/server/domain/admin-promos";
@@ -117,6 +117,8 @@ const columns = col.columns([
   }),
 ]);
 
+const STATUS_FILTERS: FilterDef[] = [{ id: "status", label: "Status", type: "select", options: Object.values(STATUS).map((s) => ({ value: s.label, label: s.label })) }];
+
 export function PromosTable({ rows }: { rows: PromoTableRow[] }) {
-  return <DataTable data={rows} columns={columns} caption="Daftar promo" searchLabel="Cari promo" getRowId={(p) => String(p.id)} empty="Belum ada promo." />;
+  return <DataTable data={rows} columns={columns} caption="Daftar promo" searchLabel="Cari promo" filters={STATUS_FILTERS} getRowId={(p) => String(p.id)} empty="Belum ada promo." />;
 }

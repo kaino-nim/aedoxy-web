@@ -22,6 +22,7 @@
   "dependencies": {
     "@better-auth/oauth-provider": "^1.7.15",
     "@better-auth/passkey": "1.7.15",
+    "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^7.0.1",
     "@lobehub/icons": "^6.13.0",
     "@tanstack/react-query": "^5.105.1",
@@ -32,6 +33,8 @@
     "cn": "^0.5.1",
     "drizzle-orm": "^0.45.4",
     "geist": "^1.9.0",
+    "gsap": "^3.15.1",
+    "lenis": "^1.3.27",
     "lucide-react": "^1.66.0",
     "next": "16.4.3",
     "nodemailer": "^10.3.1",

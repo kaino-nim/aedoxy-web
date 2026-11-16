@@ -10,10 +10,13 @@ export function Card({ className, ...props }: React.ComponentProps<"div">) {
   return <UiCard className={cn("gap-0 px-5", className)} {...props} />;
 }
 
-export function Stat({ label, value, hint, tone }: { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: "danger" | "success" | "warn" }) {
+export function Stat({ label, value, hint, tone, icon }: { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: "danger" | "success" | "warn"; icon?: React.ReactNode }) {
   return (
     <Card>
-      <p className="mono-label">{label}</p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="mono-label">{label}</p>
+        {icon}
+      </div>
       <p
         className={cn(
           "mt-2 text-3xl leading-none font-medium tracking-[-0.04em] text-heading",

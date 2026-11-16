@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/env", () => ({ env: {} }));
 
 import { creditCost } from "@/lib/model-cost";
-import { outputPerPlan, sortModels } from "@/lib/models";
+import { sortModels, tokensPerUsd } from "@/lib/models";
 import type { NewApiPricing, PricingItem } from "@/server/integrations/newapi";
 import { pricingBody } from "@/server/test/pricing-fixture";
 import { buildCatalog, type MetaRow } from "./models";
@@ -105,7 +105,7 @@ describe("buildCatalog", () => {
     expect(models.find((m) => m.id === "tiered-model")).toMatchObject({ creditInputUsdPerM: 0.112, creditOutputUsdPerM: 0.336, creditPerRequestUsd: null, creditDynamic: true });
     expect(models.find((m) => m.id === "gpt-4o")?.creditDynamic).toBe(false);
     expect(unsupported.map((u) => u.model)).toEqual(["vip-only"]);
-    expect(outputPerPlan(models.find((m) => m.id === "tiered-model")!, 20)).toEqual({ unit: "token", count: Math.floor(20 / 0.336 * 1_000_000) });
+    expect(tokensPerUsd(models.find((m) => m.id === "tiered-model")!)).toEqual({ unit: "token", input: 1 / 0.112, output: 1 / 0.336 });
   });
 
   it("hides models marked invisible and uses the admin's provider over the vendor", () => {
@@ -130,10 +130,10 @@ describe("model list helpers with missing prices", () => {
     expect(desc.slice(0, 2)).toEqual(["claude-3-5-sonnet-20241022", "gpt-4o"]);
     expect(asc.slice(2).sort()).toEqual(desc.slice(2).sort());
   });
-  it("estimates output per plan from credit / output price", () => {
+  it("estimates tokens per $1 of credit from 1 / price per 1M", () => {
     const gpt = models.find((m) => m.id === "gpt-4o")!;
-    expect(outputPerPlan(gpt, 20)).toEqual({ unit: "token", count: 2_000_000 });
-    expect(outputPerPlan(models.find((m) => m.id === "mj_imagine")!, 20)).toEqual({ unit: "request", count: 200 });
-    expect(outputPerPlan(models.find((m) => m.id === "tiered-model")!, 20)).toBeNull();
+    expect(tokensPerUsd(gpt)).toMatchObject({ unit: "token", output: 0.1 });
+    expect(tokensPerUsd(models.find((m) => m.id === "mj_imagine")!)).toEqual({ unit: "request", count: 10 });
+    expect(tokensPerUsd(models.find((m) => m.id === "tiered-model")!)).toBeNull();
   });
 });

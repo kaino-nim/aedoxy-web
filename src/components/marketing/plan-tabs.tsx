@@ -2,8 +2,11 @@
 
 import { Check } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Tabs as TabsPrimitive } from "radix-ui";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UsdIdr } from "@/components/usd-idr";
 import { site } from "@/config/site";
 import { discountPercent, formatIdr, formatUsd } from "@/lib/format";
@@ -18,6 +21,7 @@ function PlanCard({ plan, fx }: { plan: Plan; fx: FxRate | null }) {
   const out = plan.stock === "out";
   return (
     <li
+      data-rise
       className={cn(
         "flex flex-col rounded-card-lg p-6 shadow-card transition-shadow hover:shadow-card-hover sm:p-7",
         plan.badge ? "grad-border" : "border border-line bg-surface",
@@ -92,24 +96,26 @@ function PlanCard({ plan, fx }: { plan: Plan; fx: FxRate | null }) {
 
 /** Plan cards grouped by period tab (Mingguan / Bulanan). Prices come from `plans` only. */
 export function PlanTabs({ plans, fx, defaultPeriod = "monthly" }: { plans: Plan[]; fx: FxRate | null; defaultPeriod?: PlanPeriod }) {
+  const [value, setValue] = useState<PlanPeriod | null>(null);
   const periods = ORDER.filter((p) => plans.some((x) => x.period === p));
   if (periods.length === 0) {
     return <p className="rounded-card border border-line bg-surface p-6 text-fg-muted">Paket belum tersedia. Silakan kembali lagi nanti.</p>;
   }
   const initial = periods.includes(defaultPeriod) ? defaultPeriod : periods[0];
   return (
-    <Tabs defaultValue={initial} className="gap-8">
-      <TabsList className="h-11 rounded-full border border-line bg-surface p-1">
-        {periods.map((p) => (
-          <TabsTrigger
-            key={p}
-            value={p}
-            className="h-9 rounded-full px-5 text-sm data-active:bg-primary data-active:text-primary-foreground dark:data-active:bg-primary dark:data-active:text-primary-foreground"
-          >
-            {PERIOD_LABEL[p]}
-          </TabsTrigger>
-        ))}
-      </TabsList>
+    <Tabs value={value ?? initial} onValueChange={(v) => setValue(v as PlanPeriod)} className="gap-8">
+      {/* Button Group as the tablist: the Radix list/trigger keep role, aria-selected and arrow-key navigation, the Buttons draw them. */}
+      <TabsPrimitive.List asChild>
+        <ButtonGroup aria-label="Periode paket">
+          {periods.map((p) => (
+            <TabsPrimitive.Trigger key={p} value={p} asChild>
+              <Button variant={(value ?? initial) === p ? "default" : "outline"} className="h-11 px-6 text-sm">
+                {PERIOD_LABEL[p]}
+              </Button>
+            </TabsPrimitive.Trigger>
+          ))}
+        </ButtonGroup>
+      </TabsPrimitive.List>
       {periods.map((p) => (
         <TabsContent key={p} value={p}>
           <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">

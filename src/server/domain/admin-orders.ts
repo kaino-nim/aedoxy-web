@@ -1,4 +1,5 @@
-import { and, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import type { TableSort } from "@/lib/table-query";
 import { db } from "@/server/db/client";
 import { adminAuditLog, fulfillments, orders, subscriptionGrants, user } from "@/server/db/schema";
 import { isUuid } from "@/server/integrations/poketo";
@@ -29,7 +30,11 @@ function orderWhere(f: OrderFilter): SQL | undefined {
   return conds.length ? and(...conds) : undefined;
 }
 
-export async function listAdminOrders(filter: OrderFilter, page: number, pageSize: number) {
+/** Columns /api/admin/orders may order by (table column id -> column). */
+const ORDER_SORT = { createdAt: orders.createdAt, tradeNo: orders.tradeNo, email: user.email, amountIdr: orders.amountIdr, status: orders.status } as const;
+export const ORDER_SORTABLE = Object.keys(ORDER_SORT);
+
+export async function listAdminOrders(filter: OrderFilter, page: number, pageSize: number, sort?: TableSort | null) {
   const where = orderWhere(filter);
   const base = db.select({ n: count() }).from(orders).leftJoin(user, eq(user.id, orders.userId)).leftJoin(fulfillments, eq(fulfillments.orderId, orders.id)).where(where);
   const [rows, [{ n: total }]] = await Promise.all([
@@ -51,7 +56,7 @@ export async function listAdminOrders(filter: OrderFilter, page: number, pageSiz
       .leftJoin(fulfillments, eq(fulfillments.orderId, orders.id))
       .leftJoin(subscriptionGrants, eq(subscriptionGrants.orderId, orders.id))
       .where(where)
-      .orderBy(desc(orders.createdAt), desc(orders.id))
+      .orderBy(...(sort && Object.hasOwn(ORDER_SORT, sort.id) ? [(sort.desc ? desc : asc)(ORDER_SORT[sort.id as keyof typeof ORDER_SORT]), desc(orders.id)] : [desc(orders.createdAt), desc(orders.id)]))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
     base,
@@ -97,7 +102,11 @@ export async function retryDeadFulfillment(actor: Actor, orderId: string) {
 export type AuditFilter = { action?: string; actor?: string };
 
 /** `action` matches by prefix ("plan" finds plan.update), `actor` by user id or email fragment. */
-export async function listAudit(filter: AuditFilter, page: number, pageSize: number) {
+/** Columns /api/admin/audit may order by (table column id -> column). */
+const AUDIT_SORT = { createdAt: adminAuditLog.createdAt, action: adminAuditLog.action, target: adminAuditLog.target } as const;
+export const AUDIT_SORTABLE = Object.keys(AUDIT_SORT);
+
+export async function listAudit(filter: AuditFilter, page: number, pageSize: number, sort?: TableSort | null) {
   const conds: SQL[] = [];
   const action = filter.action?.trim().slice(0, 60);
   if (action) conds.push(ilike(adminAuditLog.action, `${escapeLike(action)}%`));
@@ -111,7 +120,7 @@ export async function listAudit(filter: AuditFilter, page: number, pageSize: num
       .from(adminAuditLog)
       .leftJoin(user, eq(user.id, adminAuditLog.actorId))
       .where(where)
-      .orderBy(desc(adminAuditLog.id))
+      .orderBy(...(sort && Object.hasOwn(AUDIT_SORT, sort.id) ? [(sort.desc ? desc : asc)(AUDIT_SORT[sort.id as keyof typeof AUDIT_SORT]), desc(adminAuditLog.id)] : [desc(adminAuditLog.id)]))
       .limit(pageSize)
       .offset((page - 1) * pageSize),
     db.select({ n: count() }).from(adminAuditLog).leftJoin(user, eq(user.id, adminAuditLog.actorId)).where(where),

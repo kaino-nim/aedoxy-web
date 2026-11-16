@@ -7,15 +7,18 @@ export function SectionCard({
   description,
   children,
   className,
+  stacked = false,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  /** Title above the content instead of beside it, for cards placed side by side in a grid. */
+  stacked?: boolean;
 }) {
   return (
     <Card className={cn("gap-0 px-5", className)}>
-      <div className="grid gap-5 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:gap-8">
+      <div className={cn("grid gap-5", !stacked && "md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:gap-8")}>
         <div>
           <h2 className="text-base font-medium text-heading">{title}</h2>
           {description && <p className="mt-1 text-sm leading-relaxed text-fg-muted">{description}</p>}

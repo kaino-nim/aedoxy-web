@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { adminDate } from "@/components/admin/common";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, dataColumns } from "@/components/ui/data-table";
+import { dataColumns, type FilterDef } from "@/components/ui/data-table";
+import { ServerDataTable } from "@/components/ui/server-data-table";
 import type { ConsoleState } from "@/server/domain/admin-users";
 
 export type AdminUserRow = {
@@ -65,7 +66,28 @@ const columns = col.columns([
   }),
 ]);
 
-/** The server already filtered and paged these rows (URL filters); headers sort the current page only. */
-export function AdminUsersTable({ rows }: { rows: AdminUserRow[] }) {
-  return <DataTable manual data={rows} columns={columns} caption="Pengguna" getRowId={(u) => u.id} empty="Tidak ada pengguna." />;
+const FILTERS: FilterDef[] = [
+  { id: "role", label: "Peran", type: "select", options: [{ value: "user", label: "user" }, { value: "admin", label: "admin" }] },
+  { id: "status", label: "Status", type: "select", options: [{ value: "active", label: "Aktif" }, { value: "banned", label: "Diblokir" }, { value: "terhapus", label: "Terhapus" }] },
+  { id: "verified", label: "Email", type: "select", options: [{ value: "yes", label: "Terverifikasi" }, { value: "no", label: "Belum terverifikasi" }] },
+  { id: "console", label: "Console", type: "select", options: [{ value: "linked", label: "Tertaut" }, { value: "unlinked", label: "Belum tertaut" }] },
+];
+
+/** Searched, filtered, sorted and paged by GET /api/admin/users (TanStack Query); `initial` is the first page from the server. */
+export function AdminUsersTable({ initial, initialSearch, initialFilters }: { initial: { rows: AdminUserRow[]; total: number }; initialSearch?: string; initialFilters?: Record<string, string> }) {
+  return (
+    <ServerDataTable
+      endpoint="/api/admin/users"
+      columns={columns}
+      caption="Pengguna"
+      getRowId={(u) => u.id}
+      sortable={["username", "email", "role", "createdAt"]}
+      filters={FILTERS}
+      searchLabel="Cari username, email, atau nama"
+      initial={initial}
+      initialSearch={initialSearch}
+      initialFilters={initialFilters}
+      empty="Tidak ada pengguna."
+    />
+  );
 }
