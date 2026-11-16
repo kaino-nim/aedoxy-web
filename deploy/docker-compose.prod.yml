@@ -3,6 +3,15 @@
 # No ports are published: all traffic enters through the `cloudflared` service.
 name: aedoxy-web
 
+# Operator notes (details in README.md):
+# - WEB_TAG is written to .env by the deploy workflow (the commit SHA of the image to run). Roll back by editing it and
+#   running `docker compose up -d --no-deps web worker`. Without it the stack runs `latest`.
+# - Passwords in .env must be URL-safe (alphanumeric or hex): they are spliced into DATABASE_URL, SQL_DSN and REDIS_CONN_STRING.
+# - ./postgres-init only runs when the postgres data volume is created for the first time; changing it later has no effect.
+
+# One image for web, worker and migrate, so the three can never run different versions.
+x-web-image: &web-image ghcr.io/kaino-nim/aedoxy-web:${WEB_TAG:-latest}
+
 x-logging: &logging
   driver: json-file
   options:
@@ -77,7 +86,7 @@ services:
 
   # Service key stays `new-api`: gateway-aedoxy/.github/workflows/deploy.yml runs `docker compose pull new-api`.
   new-api:
-    image: ghcr.io/eidoxy/gateway-aedoxy:latest
+    image: ghcr.io/kaino-nim/gateway-aedoxy:latest
     container_name: gateway-aedoxy
     restart: unless-stopped
     mem_limit: 768m
@@ -113,7 +122,7 @@ services:
       start_period: 30s
 
   web:
-    image: ghcr.io/eidoxy/aedoxy-web:${WEB_TAG:-latest}
+    image: *web-image
     container_name: aedoxy-web
     restart: unless-stopped
     mem_limit: 512m
@@ -128,7 +137,7 @@ services:
     # healthcheck comes from the image (node fetch against /)
 
   worker:
-    image: ghcr.io/eidoxy/aedoxy-web:${WEB_TAG:-latest}
+    image: *web-image
     container_name: aedoxy-worker
     restart: unless-stopped
     mem_limit: 256m
@@ -147,7 +156,7 @@ services:
   # One-off tasks, never started by `up`: `docker compose run --rm migrate` (see README for operator scripts).
   # Looser env than web: the OIDC secret does not exist yet when seed-oauth-client creates it.
   migrate:
-    image: ghcr.io/eidoxy/aedoxy-web:${WEB_TAG:-latest}
+    image: *web-image
     profiles: ["tools"]
     restart: "no"
     mem_limit: 256m

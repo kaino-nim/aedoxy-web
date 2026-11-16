@@ -141,3 +141,35 @@ sudo env WEB_TAG=<sha-lama> docker compose up -d --no-deps web worker
 ```
 
 Migrasi tidak dibalik otomatis. Migrasi yang sudah berlaku harus kompatibel dengan versi lama, atau pulihkan dari backup (`pg_dump`) sebelum rollback. Tanpa `WEB_TAG`, `up -d` memakai `:latest`; isi `WEB_TAG` di `.env` bila ingin mengunci versi.
+
+## CI/CD (GitHub Actions) dan GHCR
+
+Workflow `.github/workflows/deploy.yml`: test, build image, push ke GHCR, lalu deploy ke VPS lewat SSH (pull, migrate, up).
+
+**Repository variables** (Settings > Secrets and variables > Actions > tab Variables, harus tingkat repository, bukan environment variable, karena job build tidak memakai `environment`):
+
+- `NEXT_PUBLIC_SITE_URL` (mis. `https://aedoxy.com`)
+- `NEWAPI_PUBLIC_URL` (mis. `https://ai.aedoxy.com`)
+
+Nilai ini ditanam ke image saat build. Bila kosong, workflow memakai nilai bawaan di atas, bukan URL kosong.
+
+**Secrets deploy** (tab Secrets, dipakai job `deploy` di environment `production`): `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`, `SSH_PORT`. Disarankan mengganti password dengan kunci SSH (`SSH_KEY` dan `SSH_FINGERPRINT`, lihat komentar di workflow).
+
+**Image dan owner GitHub.** Image bernama `ghcr.io/kaino-nim/aedoxy-web` dan `ghcr.io/kaino-nim/gateway-aedoxy` (nama repo dalam huruf kecil). Setelah repo dipindah ke owner baru, package GHCR yang baru dibuat oleh build pertama; package lama milik owner lama tidak ikut pindah. Berikan repo akses ke package (Package settings > Manage Actions access > Add repository, peran Write) bila push ditolak. Bila package privat, di VPS jalankan sekali `sudo docker login ghcr.io` dengan PAT berscope `read:packages`.
+
+### WEB_TAG dan rollback
+
+Deploy menulis `WEB_TAG=<sha commit>` ke `.env` di VPS, lalu menjalankan `docker compose pull web worker`, `run --rm migrate`, dan `up -d --no-deps web worker`. Karena tag tersimpan di `.env`, perintah compose manual berikutnya memakai versi yang sama. Rollback: ubah `WEB_TAG` di `.env` ke SHA sebelumnya (image yang lebih tua dari 7 hari dan tak terpakai dihapus otomatis), lalu:
+
+```sh
+sudo docker compose pull web worker
+sudo docker compose up -d --no-deps web worker
+```
+
+Migrasi tidak ikut dibalik. Pastikan skema masih cocok dengan versi lama sebelum rollback.
+
+### Hal yang sering salah
+
+- **Cloudflare Tunnel.** Public hostname: `aedoxy.com` ke `http://web:3000` dan `ai.aedoxy.com` ke `http://gateway-aedoxy:3000`. Satu token tunnel hanya boleh dipakai satu konektor (satu stack). Memakai token yang sama di dua tempat membuat Cloudflare membagi lalu lintas ke konektor yang tidak bisa menjangkau service, dan muncul 502 acak.
+- **Password harus aman untuk URL.** Pakai hex atau alfanumerik (`openssl rand -hex 24`): nilainya disisipkan ke `DATABASE_URL`, `SQL_DSN`, dan `REDIS_CONN_STRING`. Karakter seperti `@`, `/`, `:`, atau `#` merusak URL.
+- **`postgres-init` hanya jalan pada volume data baru.** Mengubah `AEDOXY_DB_PASSWORD` atau skrip init sesudah volume ada tidak berpengaruh; ubah role lewat `psql` (lihat Deploy pertama).

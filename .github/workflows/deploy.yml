@@ -86,15 +86,17 @@ jobs:
           tags: |
             ghcr.io/${{ env.REPO_LC }}:${{ github.sha }}
             ghcr.io/${{ env.REPO_LC }}:latest
+          # These must be REPOSITORY variables (Settings > Secrets and variables > Actions > Variables). This job has no
+          # `environment:`, so environment-scoped variables are not visible here; the fallbacks keep an unset variable from baking an empty URL into the image.
           build-args: |
-            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
-            NEWAPI_PUBLIC_URL=${{ vars.NEWAPI_PUBLIC_URL }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL || 'https://aedoxy.com' }}
+            NEWAPI_PUBLIC_URL=${{ vars.NEWAPI_PUBLIC_URL || 'https://ai.aedoxy.com' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: production
 
     steps:
@@ -103,14 +105,21 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          # Password login is kept so the deploy keeps working. Recommended instead: an SSH key. Create the secrets
+          # SSH_KEY (private key, whose public half is in ~/.ssh/authorized_keys on the VPS) and SSH_FINGERPRINT
+          # (`ssh-keygen -lf` of the host key, to pin the server), then replace `password:` with
+          #   key: ${{ secrets.SSH_KEY }}
+          #   fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
           script: |
             set -e
             cd ~/aedoxy-web
-            WEB_TAG=${{ github.sha }}
-            sudo env WEB_TAG="$WEB_TAG" docker compose pull web worker
-            sudo env WEB_TAG="$WEB_TAG" docker compose run --rm -T migrate
-            sudo env WEB_TAG="$WEB_TAG" docker compose up -d --no-deps web worker
-            sudo docker image prune -f
+            grep -q '^WEB_TAG=' .env && sed -i "s/^WEB_TAG=.*/WEB_TAG=${{ github.sha }}/" .env || echo "WEB_TAG=${{ github.sha }}" >> .env
+            docker compose pull web worker
+            docker compose run --rm -T migrate
+            docker compose up -d --no-deps web worker
+            docker image prune -f
+            # Old SHA-tagged images pile up: drop unused ones older than a week (the running and rollback-recent tags stay).
+            docker image prune -af --filter "until=168h"
