@@ -2,6 +2,8 @@
 
 Arahan pemilik produk: tampilan aedoxy.com **semirip mungkin dengan [gutsai.id](https://gutsai.id/)**. Karena itu, dokumen ini sengaja tidak memakai saran "hindari tampilan template" dari skill frontend-design. Arahan pemilik yang berlaku.
 
+**Perubahan 2026-11-15:** hero, ringkasan (statistik + provider), section Platform, dan halaman `/models` sengaja **dibuat berbeda** dari referensi (`01`, `02`, `03`, `12`). Isi kontennya tetap, layoutnya baru (lihat baris 3–5 dan bagian `/models` di bawah). Token warna dan tipografi tidak berubah.
+
 Nilai di bawah diukur pada 2026-11-01 dari halaman live (computed style + sampel piksel dari screenshot 1440×900). Screenshot ada di `ui-reference/`, urut dari atas ke bawah halaman.
 
 ## Batas peniruan
@@ -60,9 +62,9 @@ Mode gelap ada (tombol tema di header). Turunkan token gelap dari `--dark` dan u
 |---|---|---|---|
 | 1 | Bar pengumuman (latar `--primary-tint`, badge "NEW" hijau, tombol tutup) | `01-hero.png` | Promo/paket baru dari data admin |
 | 2 | Header: logo kiri, nav tengah (Models, Pricing, Docs), tombol tema + CTA kanan. Sticky dengan border bawah saat scroll | `01-hero.png` | Nav: Models, Pricing, Docs. CTA "Mulai" / "Dashboard" |
-| 3 | Hero 2 kolom: pill hijau ber-border gradien, H1 dua baris (baris 2 gradien), paragraf, 2 tombol, baris metode bayar. Kanan: panel ilustrasi dither berisi kartu kode bertab (python/node/curl, nomor baris, tombol Copy), strip respons ("200 OK · streaming"), chip model, dan pill provider di bawah | `01-hero.png` | Metode bayar: QRIS, Virtual Account. Model dari `/api/pricing` |
-| 4 | Statistik 4 kolom (label mono, angka besar, chip/mini-chart, keterangan) + marquee logo provider dengan fade di tepi | `02-section-0.png` | Hanya angka nyata (jumlah model, provider). Sembunyikan kolom yang datanya belum ada |
-| 5 | Platform: H2 kiri + paragraf kanan, bento grid (kartu besar dengan ilustrasi + daftar model, kartu "satu paket", kartu latency, kartu privasi) | `02`–`04` | Klaim hanya yang benar-benar dijalankan |
+| 3 | Hero terpusat: baris harga (link ke `#paket`), H1 dua baris dengan logo provider di dalam kalimat, paragraf, 2 tombol, baris metode bayar. Di bawahnya bingkai teal lebar (cahaya dari atas) berisi satu jendela: daftar model kiri, kode bertab (python/node/curl, Salin) tengah, contoh respons kanan | `01-hero.png` (sengaja berbeda) | Metode bayar: QRIS, Virtual Account. Model dari `/api/pricing` |
+| 4 | Ringkasan: kiri daftar angka (label + keterangan kiri, angka besar kanan), kanan indeks provider (kartu logo + nama + jumlah model, link ke `/models`). Tanpa marquee | `02-section-0.png` (sengaja berbeda) | Hanya angka nyata (jumlah model, provider). Sembunyikan baris yang datanya belum ada |
+| 5 | Platform: kolom kiri sticky (H2 + paragraf), kanan empat baris fitur, masing-masing teks + gambarnya sendiri (daftar model, contoh paket, harga flat, diagram alur request ke provider). Tanpa bento | `02`–`04` (sengaja berbeda) | Klaim hanya yang benar-benar dijalankan |
 | 6 | Reliability: judul tengah, diagram routing interaktif (tab Availability/Cost/Latency), latar titik-titik | `04-section-2.png` | Opsional di v1. Bila dipakai, tandai sebagai ilustrasi |
 | 7 | Rankings: latar `--bg-alt`, kiri judul, kanan tabel 3 model teratas (kartu pertama ber-border gradien) | `05-section-3.png` | Dari log pemakaian console (P2). Sembunyikan bila belum ada data |
 | 8 | Get started: 3 langkah dengan nomor + garis progres + estimasi waktu, masing-masing dengan kartu demo | `06-section-4.png` | Daftar → Pilih paket & bayar QRIS → Buat API key |
@@ -74,10 +76,12 @@ Mode gelap ada (tombol tema di header). Turunkan token gelap dari `--dark` dan u
 
 ## Halaman `/models` (`12-models.png`)
 
-- Header halaman: H1 "Model catalog", paragraf, info kecil, statistik kanan (MODELS, PROVIDERS).
-- Toolbar: search (dengan hint `/`), dropdown provider/kemampuan/status/sort, toggle USD/IDR.
-- Baris chip provider dengan logo.
-- Per provider satu kartu: panel kiri 300px dengan ilustrasi dither + logo + nama + "N MODELS · FROM $x / 1M", lalu tabel kanan dengan kolom Model (mono), Context (in/out), Capabilities (ikon kotak), Status (titik hijau), Official (dicoret + "save N%"), dan Price / 1M ($ + "≈ Rp" kecil).
+Sejak 2026-11-15 layoutnya sengaja berbeda dari referensi:
+
+- Header halaman: jumlah model dan provider dalam satu baris mono di atas H1 "Katalog model", paragraf; catatan cara membaca harga di `Alert` sebelah kanan.
+- Sidebar kiri (sticky di ≥ lg): search (hint `/`) dan daftar provider (logo, nama, jumlah model) sebagai filter. Di bawah lg daftar ini diganti dropdown provider.
+- Toolbar di atas hasil: kemampuan, status, urutan, toggle USD/IDR, lalu baris "N dari M model" (`aria-live`).
+- Per provider satu kartu: header (logo, nama, "N model · mulai $x / 1M"), lalu tabel lebar tetap (Model + status, Context, Kemampuan, Resmi, Biaya kredit, ≈ Output per paket) di ≥ xl, atau kartu per model di bawah xl.
 - Konversi Rp mengikuti F04: hanya untuk harga resmi provider.
 
 ## Panel user dan admin
@@ -100,6 +104,6 @@ Dipakai oleh panel user (`src/app/(panel)`) dan admin (`src/app/(admin)/admin`) 
 ## Gerak
 
 - Elemen muncul saat di-scroll (fade + naik sedikit). Inilah sebabnya screenshot full-page tanpa scroll terlihat kosong.
-- Marquee logo provider berjalan terus dengan fade di tepi. Hentikan saat hover, dan matikan bila `prefers-reduced-motion`.
+- Hero masuk sekali saat halaman dimuat (CSS saja). Diagram alur request menjalankan satu denyut 3 detik, lalu berulang hanya saat di-hover. Kartu provider naik 2px saat hover.
 - Kursor berkedip di demo respons hero dan terminal.
 - Semua animasi wajib menghormati `prefers-reduced-motion`. Konten harus tetap terlihat walau JavaScript gagal: jangan mulai dari `opacity: 0` tanpa fallback.
