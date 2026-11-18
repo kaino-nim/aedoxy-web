@@ -9,6 +9,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const { brandName, tagline, description, assets } = await getSiteSettings();
   const title = tagline ? `${brandName}: ${tagline}` : brandName;
   const { favicon, og } = assets;
+  // Admin upload wins; otherwise the built-in /public/og-default.png (resolved to absolute via metadataBase).
+  const ogImage = og ? { url: og.url, width: og.width, height: og.height } : { url: "/og-default.png", width: 1200, height: 630, alt: title };
   return {
     metadataBase: new URL(site.url),
     title: { default: title, template: `%s | ${brandName}` },
@@ -21,8 +23,9 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       locale: "id_ID",
-      ...(og && { images: [{ url: og.url, width: og.width, height: og.height }] }),
+      images: [ogImage],
     },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 export const viewport: Viewport = {
